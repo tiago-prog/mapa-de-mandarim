@@ -172,7 +172,7 @@
 
 ## Sincronização, preview e Pull Request
 
-- [ ] Fazer pull e verificar alterações locais e remotas
-- [ ] Gerar preview atualizado do projeto
-- [ ] Criar ou atualizar Pull Request no GitHub quando houver alterações publicáveis
-- [ ] Documentar o resultado da sincronização e do preview
+- [x] Fazer pull e verificar alterações locais e remotas
+- [x] Gerar preview atualizado do projeto
+- [x] Criar ou atualizar Pull Request no GitHub quando houver alterações publicáveis
+- [x] Documentar o resultado da sincronização e do preview
