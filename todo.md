@@ -8,11 +8,11 @@
 - [x] Definir abas principais: Hoje, Mapa, Revisar e Biblioteca
 - [x] Definir paleta inicial baseada no Caderno de Mandarim
 - [x] Definir tipografia de referência para títulos, hanzi, interface e pinyin
-- [ ] Definir nome final e identidade definitiva do aplicativo
-- [ ] Definir primeira trilha pedagógica do MVP
-- [ ] Registrar decisões de arquitetura e modelo de domínio
-- [ ] Definir estratégia de autenticação: Manus OAuth no desenvolvimento e Google OAuth para produção
-- [ ] Definir política de dados locais e sincronização
+- [x] Definir nome final e identidade definitiva do aplicativo
+- [x] Definir primeira trilha pedagógica do MVP
+- [x] Registrar decisões de arquitetura e modelo de domínio
+- [x] Definir estratégia de autenticação: Manus OAuth no desenvolvimento e Google OAuth para produção
+- [x] Definir política de dados locais e sincronização
 
 ## Etapa 2 — Identidade visual e design system
 
@@ -137,6 +137,6 @@
 - [x] Documentar política de dados locais, sincronização e escopo offline
 - [x] Atualizar README com a visão e o estado atual do projeto
 - [x] Validar TypeScript, lint, testes e preview
-- [ ] Salvar checkpoint final da Etapa 1
+- [x] Salvar checkpoint final da Etapa 1
 - [ ] Criar commit final da Etapa 1
 - [ ] Fazer push para o repositório privado do GitHub
