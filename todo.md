@@ -106,7 +106,9 @@
 - [ ] Avaliar experiência desktop
 - [ ] Avaliar recursos sociais
 
-## Personalização da tela Hoje e componentes-base
+## Tela Hoje e componentes-base — prioridades ajustadas
+
+### P0 — Essencial para a primeira experiência funcional
 
 - [x] Definir composição mobile first da tela Hoje com uma ação principal
 - [x] Criar componente reutilizável de card de ação recomendada
@@ -115,8 +117,30 @@
 - [x] Criar componente reutilizável de seção e cabeçalho de tela
 - [x] Configurar navegação inferior inicial para Hoje, Mapa, Revisar e Biblioteca
 - [x] Substituir a tela inicial do template pela tela Hoje
+- [ ] Conectar o card principal da tela Hoje ao próximo nó real da trilha
+- [ ] Substituir métricas estáticas por dados de progresso do usuário
+- [ ] Mostrar revisões pendentes reais na tela Hoje
 - [ ] Adicionar estados de carregamento, vazio e erro na tela Hoje
-- [x] Validar a tela Hoje em viewport mobile portrait
+- [ ] Garantir que o botão principal tenha fluxo funcional até uma atividade
+- [ ] Validar a tela Hoje em viewport mobile portrait
+
+### P1 — Melhoria de clareza e retenção
+
+- [ ] Adicionar resumo visual do progresso da trilha atual
+- [ ] Adicionar seção de revisão recomendada com prioridade por dificuldade
+- [ ] Adicionar feedback de conclusão após uma atividade
+- [ ] Adicionar estado de sequência diária sem depender de números fictícios
+- [ ] Adicionar ação rápida para abrir a próxima missão
+- [ ] Adicionar microinterações discretas em progresso, conclusão e pressões
+- [ ] Validar contraste, áreas de toque e leitura dos componentes-base
+
+### P2 — Polimento posterior
+
+- [ ] Adicionar personalização da saudação por horário e nome do usuário
+- [ ] Adicionar ilustração proprietária de estado vazio
+- [ ] Adicionar animação de entrada apenas onde comunicar progresso
+- [ ] Adicionar atalhos para explorar outras trilhas
+- [ ] Adaptar a composição da tela Hoje para desktop
 
 ## Migração para Expo SDK 57
 
@@ -140,3 +164,8 @@
 - [x] Salvar checkpoint final da Etapa 1
 - [x] Criar commit final da Etapa 1
 - [x] Fazer push para o repositório privado do GitHub
+
+## Documentação de transição entre IAs
+
+- [x] Criar arquivo de transição atualizado com estado, decisões, validações e próximos passos
+- [x] Registrar no arquivo de transição o protocolo para commits e pushes
