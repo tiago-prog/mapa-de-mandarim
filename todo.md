@@ -176,3 +176,24 @@
 - [x] Gerar preview atualizado do projeto
 - [x] Criar ou atualizar Pull Request no GitHub quando houver alterações publicáveis
 - [x] Documentar o resultado da sincronização e do preview
+
+## Etapa 2 — Primeiro vertical slice funcional
+
+- [x] Criar domínio puro da trilha inicial
+- [x] Criar dados iniciais de cinco nós e cinco atividades
+- [x] Criar schema mínimo de trilhas, nós, vocabulário, atividades e progresso
+- [x] Gerar migração Drizzle `0001_spotty_hellfire_club.sql`
+- [x] Criar seed idempotente da trilha inicial
+- [x] Criar procedures `today`, `learningMap`, `lesson` e `progression`
+- [x] Persistir progresso e XP com fallback em memória para preview sem banco
+- [x] Substituir mocks da tela Hoje por dados do domínio
+- [x] Implementar mapa vertical com estados visuais dos nós
+- [x] Implementar detalhe do nó com progresso real
+- [x] Implementar atividade de múltipla escolha com feedback
+- [x] Adicionar idempotência por `clientEventId`
+- [x] Adicionar testes de domínio e integração do fluxo
+- [x] Validar TypeScript, lint, testes e build
+- [x] Validar export estático web
+- [ ] Aplicar a migração no banco do ambiente de desenvolvimento/staging
+- [ ] Substituir o fallback de preview por dados reais após configurar o banco
+
