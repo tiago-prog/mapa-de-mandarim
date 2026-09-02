@@ -1,6 +1,6 @@
-import { ActivityIndicator, Pressable, Text, type PressableProps } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, Text, type PressableProps } from "react-native";
 
-import { cn } from "@/lib/utils";
+import { useColors } from "@/hooks/use-colors";
 
 export interface AppButtonProps extends PressableProps {
   label: string;
@@ -16,35 +16,50 @@ export function AppButton({
   style,
   ...props
 }: AppButtonProps) {
-  const buttonClass = {
-    primary: "bg-primary",
-    secondary: "border border-border bg-surface",
-    quiet: "bg-transparent",
-  }[variant];
-  const textClass = {
-    primary: "text-background",
-    secondary: "text-foreground",
-    quiet: "text-primary",
-  }[variant];
+  const colors = useColors();
+  const isDisabled = disabled || loading;
+  const buttonColor = variant === "primary" ? colors.primary : variant === "secondary" ? colors.surface : "transparent";
+  const textColor = variant === "primary" ? colors.background : variant === "secondary" ? colors.foreground : colors.primary;
 
   return (
     <Pressable
       {...props}
-      disabled={disabled || loading}
+      disabled={isDisabled}
       style={(state) => {
         const externalStyle = typeof style === "function" ? style(state) : style;
         return [
-          { transform: [{ scale: state.pressed ? 0.98 : 1 }], opacity: state.pressed ? 0.9 : 1 },
+          styles.button,
+          { backgroundColor: buttonColor },
+          variant === "secondary" && { borderColor: colors.border, borderWidth: StyleSheet.hairlineWidth },
+          isDisabled && styles.disabled,
+          state.pressed && styles.pressed,
           externalStyle,
         ];
       }}
-      className={cn(
-        "min-h-[52px] flex-row items-center justify-center rounded-full px-5",
-        buttonClass,
-        (disabled || loading) && "opacity-50",
-      )}
     >
-      {loading ? <ActivityIndicator color={variant === "primary" ? "#FFFCF4" : "#172A35"} /> : <Text className={cn("text-base font-semibold", textClass)}>{label}</Text>}
+      {loading ? <ActivityIndicator color={textColor} /> : <Text style={[styles.label, { color: textColor }]}>{label}</Text>}
     </Pressable>
   );
 }
+
+const styles = StyleSheet.create({
+  button: {
+    minHeight: 52,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 999,
+    paddingHorizontal: 20,
+  },
+  label: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  pressed: {
+    opacity: 0.9,
+    transform: [{ scale: 0.98 }],
+  },
+});
