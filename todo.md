@@ -138,5 +138,5 @@
 - [x] Atualizar README com a visão e o estado atual do projeto
 - [x] Validar TypeScript, lint, testes e preview
 - [x] Salvar checkpoint final da Etapa 1
-- [ ] Criar commit final da Etapa 1
-- [ ] Fazer push para o repositório privado do GitHub
+- [x] Criar commit final da Etapa 1
+- [x] Fazer push para o repositório privado do GitHub
