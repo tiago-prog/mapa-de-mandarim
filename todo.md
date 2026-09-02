@@ -127,3 +127,16 @@
 - [x] Corrigir incompatibilidades de TypeScript, lint e runtime
 - [x] Validar tela Hoje, navegação e rotas principais após a migração
 - [x] Executar testes e salvar checkpoint da migração
+
+## Finalização da Etapa 1 e publicação
+
+- [x] Definir nome e identidade de trabalho do produto para esta fase
+- [x] Documentar a primeira trilha pedagógica e seus limites de MVP
+- [x] Documentar arquitetura e modelo de domínio inicial
+- [x] Documentar estratégia de autenticação Manus OAuth e futura transição para Google OAuth
+- [x] Documentar política de dados locais, sincronização e escopo offline
+- [x] Atualizar README com a visão e o estado atual do projeto
+- [x] Validar TypeScript, lint, testes e preview
+- [ ] Salvar checkpoint final da Etapa 1
+- [ ] Criar commit final da Etapa 1
+- [ ] Fazer push para o repositório privado do GitHub
