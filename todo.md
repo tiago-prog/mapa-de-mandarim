@@ -169,3 +169,10 @@
 
 - [x] Criar arquivo de transição atualizado com estado, decisões, validações e próximos passos
 - [x] Registrar no arquivo de transição o protocolo para commits e pushes
+
+## Sincronização, preview e Pull Request
+
+- [ ] Fazer pull e verificar alterações locais e remotas
+- [ ] Gerar preview atualizado do projeto
+- [ ] Criar ou atualizar Pull Request no GitHub quando houver alterações publicáveis
+- [ ] Documentar o resultado da sincronização e do preview
