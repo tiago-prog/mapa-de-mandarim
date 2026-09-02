@@ -1,0 +1,119 @@
+# Project TODO
+
+## Etapa 1 — Preparação do produto e do projeto
+
+- [x] Inicializar novo projeto mobile first com Expo, React Native e TypeScript
+- [x] Definir direção mobile portrait e uso com uma mão
+- [x] Criar plano inicial de interface em design.md
+- [x] Definir abas principais: Hoje, Mapa, Revisar e Biblioteca
+- [x] Definir paleta inicial baseada no Caderno de Mandarim
+- [x] Definir tipografia de referência para títulos, hanzi, interface e pinyin
+- [ ] Definir nome final e identidade definitiva do aplicativo
+- [ ] Definir primeira trilha pedagógica do MVP
+- [ ] Registrar decisões de arquitetura e modelo de domínio
+- [ ] Definir estratégia de autenticação: Manus OAuth no desenvolvimento e Google OAuth para produção
+- [ ] Definir política de dados locais e sincronização
+
+## Etapa 2 — Identidade visual e design system
+
+- [x] Criar símbolo principal da marca
+- [ ] Criar logotipo horizontal
+- [x] Criar ícone do aplicativo
+- [x] Configurar tokens de tema no projeto
+- [x] Criar componentes-base de botão, card e progresso
+- [ ] Selecionar biblioteca de ícones
+- [ ] Criar ativos proprietários P0
+
+## Etapa 3 — Base mobile e autenticação
+
+- [x] Substituir a tela inicial do template pela tela Hoje
+- [x] Configurar navegação inferior mobile first
+- [ ] Implementar tema claro e escuro
+- [x] Implementar estados de carregamento e erro
+- [ ] Integrar fluxo de autenticação inicial
+- [ ] Criar tela de boas-vindas
+- [ ] Criar tela de diagnóstico inicial
+
+## Etapa 4 — Dicionário e palavras conhecidas
+
+- [ ] Importar dataset lexical selecionado do Caderno de Mandarim
+- [ ] Criar entidade de entrada lexical
+- [ ] Criar busca por hanzi, pinyin e significado
+- [ ] Criar ficha detalhada da palavra
+- [ ] Criar estado pessoal da palavra
+- [ ] Criar lista Minhas palavras
+- [ ] Adicionar áudio de pronúncia quando disponível
+
+## Etapa 5 — Mapa e trilha inicial
+
+- [ ] Criar entidades de trilha e nó
+- [ ] Criar relações de pré-requisito
+- [ ] Criar estados visuais dos nós
+- [ ] Implementar mapa vertical mobile
+- [ ] Criar detalhe do nó
+- [ ] Criar progresso por nó
+- [ ] Configurar primeira trilha de aprendizagem
+
+## Etapa 6 — Etapa intermediária e missões
+
+- [ ] Criar atividades de associação
+- [ ] Criar atividades de reconhecimento em frase
+- [ ] Criar atividade de ordenação de frase
+- [ ] Criar atividade de preenchimento de lacuna
+- [ ] Criar entidade de missão
+- [ ] Criar missão final da primeira trilha
+- [ ] Registrar conclusão da atividade e da missão
+
+## Etapa 7 — Flashcards e SRS
+
+- [ ] Criar modelo de cartão associado a palavra e nó
+- [ ] Importar e adaptar lógica de repetição espaçada
+- [ ] Criar sessão de revisão
+- [ ] Implementar revelação de resposta
+- [ ] Implementar avaliações esqueci, difícil e fácil
+- [ ] Registrar eventos de revisão
+- [ ] Mostrar revisões pendentes na tela Hoje
+
+## Etapa 8 — Gamificação e progresso
+
+- [ ] Criar XP
+- [ ] Criar sequência diária
+- [ ] Criar regras de domínio por nó
+- [ ] Implementar desbloqueio de nós
+- [ ] Criar conquistas iniciais
+- [ ] Mostrar resultado pós-atividade
+- [ ] Atualizar visualmente o mapa após progresso
+
+## Etapa 9 — Validação do MVP
+
+- [ ] Testar fluxo completo de primeiro acesso
+- [ ] Testar fluxo completo de aprendizagem de um nó
+- [ ] Testar fluxo de consulta no dicionário
+- [ ] Testar fluxo de revisão
+- [ ] Testar persistência de progresso
+- [ ] Testar estados de erro e reconexão
+- [ ] Validar uso em telas portrait pequenas
+- [ ] Validar acessibilidade básica
+- [ ] Executar TypeScript, lint e testes
+- [ ] Criar checkpoint da primeira entrega funcional
+
+## Pós-MVP
+
+- [ ] Validar Google OAuth em staging
+- [ ] Adicionar novas trilhas
+- [ ] Adicionar leitor de textos
+- [ ] Avaliar recursos de IA
+- [ ] Avaliar experiência desktop
+- [ ] Avaliar recursos sociais
+
+## Personalização da tela Hoje e componentes-base
+
+- [x] Definir composição mobile first da tela Hoje com uma ação principal
+- [x] Criar componente reutilizável de card de ação recomendada
+- [x] Criar componente reutilizável de indicador de progresso
+- [x] Criar componente reutilizável de métrica diária
+- [x] Criar componente reutilizável de seção e cabeçalho de tela
+- [x] Configurar navegação inferior inicial para Hoje, Mapa, Revisar e Biblioteca
+- [x] Substituir a tela inicial do template pela tela Hoje
+- [ ] Adicionar estados de carregamento, vazio e erro na tela Hoje
+- [x] Validar a tela Hoje em viewport mobile portrait
