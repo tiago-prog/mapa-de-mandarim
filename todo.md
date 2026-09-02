@@ -117,3 +117,13 @@
 - [x] Substituir a tela inicial do template pela tela Hoje
 - [ ] Adicionar estados de carregamento, vazio e erro na tela Hoje
 - [x] Validar a tela Hoje em viewport mobile portrait
+
+## Migração para Expo SDK 57
+
+- [x] Auditar compatibilidade do Expo SDK 57.0.9 com o scaffold atual
+- [x] Atualizar Expo SDK e módulos Expo para versões compatíveis
+- [x] Atualizar React Native, Expo Router e dependências relacionadas conforme compatibilidade
+- [x] Regenerar lockfile e validar instalação
+- [x] Corrigir incompatibilidades de TypeScript, lint e runtime
+- [x] Validar tela Hoje, navegação e rotas principais após a migração
+- [x] Executar testes e salvar checkpoint da migração
