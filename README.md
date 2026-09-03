@@ -55,6 +55,10 @@ pnpm test
 
 O comando `pnpm dev` inicia o servidor da API e o Metro/Expo web. Para testar em dispositivo, utilize o fluxo de QR Code do ambiente Expo.
 
+### Banco local
+
+O desenvolvimento pode usar MariaDB local sem depender de um banco compartilhado. No Ubuntu/Linux, execute `./scripts/setup-local-db-ubuntu.sh`; no Windows, use o PowerShell nativo com `./scripts/setup-local-db-windows.ps1`. Os scripts criam o banco, aplicam as migrações e geram `.env.local`. Consulte [`docs/local-development-database.md`](./docs/local-development-database.md) para os pré-requisitos, parâmetros e limites do ambiente local. Nunca commite a `DATABASE_URL` real.
+
 ## Estrutura principal
 
 ```text
@@ -99,4 +103,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A sessão visual da aba Revisar e o resumo de revisões pendentes na tela Hoje já estão implementados. A próxima fase é aplicar as migrações no staging, substituir o fallback de preview por dados reais e validar a persistência ponta a ponta.
+O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A sessão visual da aba Revisar, o resumo de revisões pendentes na tela Hoje e a persistência em MariaDB local já estão implementados. O próximo foco do produto pode avançar sem banco compartilhado; um banco remoto separado será necessário apenas na publicação ou colaboração entre máquinas.

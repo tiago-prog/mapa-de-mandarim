@@ -207,13 +207,13 @@
 
 ## Próximo checkpoint
 
-O próximo incremento recomendado é provisionar um banco MySQL/TiDB para desenvolvimento/staging. Esta etapa está bloqueada porque não existe `DATABASE_URL` disponível nesta sessão. Depois de obter a conexão, a próxima IA deve executar `pnpm db:push`, iniciar a API com `DATABASE_URL` configurada, verificar as tabelas `srs_cards` e `srs_reviews` e validar o ciclo persistido de aprendizagem e revisão. A URL não deve ser gravada no repositório nem incluída em commits.
+O ambiente oficial de desenvolvimento agora é MariaDB local, reproduzível pelos instaladores Ubuntu e Windows PowerShell. O próximo incremento do produto pode continuar sem banco compartilhado. Um banco remoto separado só será necessário na publicação ou se houver colaboração entre máquinas. A URL real nunca deve ser gravada no repositório nem incluída em commits.
 
 ## Handoff para a próxima IA
 
 ### Bloqueio atual
 
-Não há `DATABASE_URL` configurada nesta sessão, não existe arquivo `.env` no projeto e nenhum banco MySQL/TiDB de desenvolvimento ou staging foi provisionado. Portanto, a migração real e os testes de persistência entre sessões estão deliberadamente pendentes. Não criar uma URL fictícia, não gravar credenciais no repositório e não alterar a arquitetura MySQL/TiDB sem uma decisão explícita.
+Não há banco remoto compartilhado de desenvolvimento/staging, mas isso não bloqueia o trabalho individual. O ambiente local usa MariaDB e é reproduzível pelos scripts documentados. A persistência remota e os testes de publicação continuam pendentes até existir um servidor externo. Não criar uma URL fictícia, não gravar credenciais no repositório e não alterar a arquitetura MySQL/TiDB sem uma decisão explícita.
 
 ### Estado funcional já entregue
 
@@ -226,12 +226,13 @@ Não há `DATABASE_URL` configurada nesta sessão, não existe arquivo `.env` no
 
 ### Retomada recomendada quando houver banco
 
-1. Disponibilizar `DATABASE_URL` somente no ambiente de execução.
-2. Executar `pnpm db:push` na raiz do projeto.
-3. Iniciar a API com `DATABASE_URL` configurada.
-4. Confirmar as tabelas `srs_cards` e `srs_reviews` e a criação de registros após uma atividade.
-5. Validar persistência do cartão, avaliação, próximo vencimento e histórico após reiniciar a API.
-6. Só então marcar como concluídos os itens de migração, persistência e OAuth em staging.
+1. Provisionar um banco remoto somente quando publicação ou colaboração exigirem.
+2. Disponibilizar `DATABASE_URL` somente no ambiente de execução.
+3. Executar o instalador correspondente ou aplicar as migrações SQL em ordem; revisar o journal antes de usar `pnpm db:push`.
+4. Iniciar a API com `DATABASE_URL` configurada.
+5. Confirmar as tabelas `srs_cards` e `srs_reviews` e a criação de registros após uma atividade.
+6. Validar persistência do cartão, avaliação, próximo vencimento e histórico após reiniciar a API.
+7. Só então marcar como concluídos os itens de migração, persistência e OAuth no ambiente remoto.
 
 ### Trabalho que pode continuar sem banco
 
@@ -244,4 +245,8 @@ A próxima IA pode avançar em acessibilidade, estados de reconexão, onboarding
 - [x] Corrigir o índice de atividades para suportar múltiplas etapas por nó.
 - [x] Validar seed do MVP com uma trilha, cinco nós, onze entradas lexicais e onze atividades.
 - [x] Validar persistência de atividade, vocabulário, progresso, cartão SRS e avaliação.
-- [ ] Provisionar banco compartilhado de desenvolvimento/staging (ainda depende de provedor e `DATABASE_URL`).
+- [x] Criar instalador Bash para Ubuntu.
+- [x] Criar instalador PowerShell nativo para Windows.
+- [x] Criar `.env.example` seguro e proteger arquivos locais no `.gitignore`.
+- [x] Documentar execução, migrações e limites do ambiente local.
+- [ ] Provisionar banco remoto apenas quando publicação ou colaboração exigirem.
