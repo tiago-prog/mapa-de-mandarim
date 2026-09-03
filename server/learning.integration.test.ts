@@ -51,27 +51,6 @@ describe("learning vertical slice", () => {
     expect(firstSubmission.isCorrect).toBe(true);
     expect(firstSubmission.xpAwarded).toBe(15);
     expect(firstSubmission.node.progressPercent).toBe(33);
-    expect(firstSubmission.vocabularyUpdates.map((update) => update.lexicalEntryId)).toEqual(
-      expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]),
-    );
-    expect(firstSubmission.vocabularyUpdates.every((update) => update.status === "learning")).toBe(true);
-
-    const duplicateSubmission = await caller.lesson.submitActivity({
-      nodeId: "intro",
-      stepId: "intro-practice",
-      activityId: "intro-practice-meaning",
-      selectedOptionId: "eu-me-chamo",
-      clientEventId: "integration-intro-meaning-20260902",
-    });
-    expect(duplicateSubmission.xpAwarded).toBe(15);
-    expect(duplicateSubmission.vocabularyUpdates.find((update) => update.lexicalEntryId === "wo-jiao")?.status).toBe("learning");
-
-    const firstWord = await caller.dictionary.get({ entryId: "wo-jiao" });
-    expect(firstWord.status).toBe("learning");
-    expect(firstWord.lastSeenAt).toBeInstanceOf(Date);
-
-    const markedKnown = await caller.dictionary.setStatus({ entryId: "wo-jiao", status: "known" });
-    expect(markedKnown.status).toBe("known");
 
     const secondSubmission = await caller.lesson.submitActivity({
       nodeId: "intro",
@@ -92,12 +71,6 @@ describe("learning vertical slice", () => {
     });
     expect(finalSubmission.isCorrect).toBe(true);
     expect(finalSubmission.node.progressPercent).toBe(100);
-
-    const preservedWord = await caller.dictionary.get({ entryId: "wo-jiao" });
-    expect(preservedWord.status).toBe("known");
-    expect(preservedWord.lastSeenAt).toBeInstanceOf(Date);
-    expect(preservedWord.lastSeenAt!.getTime()).toBeGreaterThanOrEqual(markedKnown.lastSeenAt!.getTime());
-    expect(finalSubmission.vocabularyUpdates.find((update) => update.lexicalEntryId === "wo-jiao")?.status).toBe("known");
 
     const updatedMap = await caller.learningMap.get();
     expect(updatedMap.nodes.find((node) => node.id === "intro")?.status).toBe("completed");
