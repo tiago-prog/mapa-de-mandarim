@@ -5,6 +5,7 @@ import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
+import { AudioButton } from "@/components/ui/audio-button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
@@ -167,7 +168,10 @@ export default function LessonScreen() {
             {content.lines.map((line, index) => (
               <View key={`${line.speaker}-${index}`} className="gap-1">
                 <Text className="text-xs font-semibold uppercase tracking-widest text-primary">{line.speaker}</Text>
-                <Text className="text-2xl font-bold text-foreground">{line.hanzi}</Text>
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 text-2xl font-bold text-foreground">{line.hanzi}</Text>
+                  <AudioButton text={line.hanzi} compact />
+                </View>
                 <Text className="text-sm text-primary">{line.pinyin}</Text>
                 {showTranslations ? <Text className="text-sm leading-5 text-muted">{line.translation}</Text> : null}
               </View>
@@ -191,10 +195,16 @@ export default function LessonScreen() {
                   <Text className="text-3xl font-bold text-foreground">{entry.hanzi}</Text>
                   <Text className="mt-1 text-base text-primary">{entry.pinyin}</Text>
                 </View>
-                <Text className="text-right text-sm font-semibold text-muted">{entry.meaningPtBr}</Text>
+                <View className="items-end gap-2">
+                  <AudioButton text={entry.hanzi} compact />
+                  <Text className="text-right text-sm font-semibold text-muted">{entry.meaningPtBr}</Text>
+                </View>
               </View>
               <View className="border-t border-border pt-2">
-                <Text className="text-base font-semibold text-foreground">{entry.exampleHanzi}</Text>
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 text-base font-semibold text-foreground">{entry.exampleHanzi}</Text>
+                  <AudioButton text={entry.exampleHanzi} compact />
+                </View>
                 <Text className="mt-1 text-sm leading-5 text-muted">{entry.examplePtBr}</Text>
               </View>
             </AppCard>
@@ -214,7 +224,10 @@ export default function LessonScreen() {
               <Text className="text-xl font-bold text-primary">{pattern.pattern}</Text>
               <Text className="text-sm leading-5 text-muted">{pattern.explanation}</Text>
               <View className="border-t border-border pt-3">
-                <Text className="text-lg font-semibold text-foreground">{pattern.exampleHanzi}</Text>
+                <View className="flex-row items-center justify-between gap-3">
+                  <Text className="flex-1 text-lg font-semibold text-foreground">{pattern.exampleHanzi}</Text>
+                  <AudioButton text={pattern.exampleHanzi} compact />
+                </View>
                 <Text className="mt-1 text-sm text-muted">{pattern.examplePtBr}</Text>
               </View>
             </AppCard>
@@ -270,7 +283,12 @@ export default function LessonScreen() {
                 <Text className="text-xs font-semibold uppercase tracking-widest text-warning">PRÁTICA</Text>
                 <Text className="text-xl font-bold text-background">{activity.title}</Text>
                 <Text className="text-sm leading-5 text-surface">{activity.instruction}</Text>
-                {activity.hanzi ? <Text className="text-center text-5xl font-bold text-background">{activity.hanzi}</Text> : null}
+                {activity.hanzi ? (
+                  <View className="items-center gap-2">
+                    <Text className="text-center text-5xl font-bold text-background">{activity.hanzi}</Text>
+                    <AudioButton text={activity.hanzi} label="Ouvir pronúncia" />
+                  </View>
+                ) : null}
                 {activity.pinyin ? <Text className="text-center text-base text-warning">{activity.pinyin}</Text> : null}
                 {activity.meaning ? <Text className="text-center text-sm text-surface">{activity.meaning}</Text> : null}
               </AppCard>
