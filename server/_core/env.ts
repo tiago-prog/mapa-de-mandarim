@@ -7,4 +7,8 @@ export const ENV = {
   isProduction: process.env.NODE_ENV === "production",
   forgeApiUrl: process.env.BUILT_IN_FORGE_API_URL ?? "",
   forgeApiKey: process.env.BUILT_IN_FORGE_API_KEY ?? "",
+  azureSpeechKey: process.env.AZURE_SPEECH_KEY ?? "",
+  azureSpeechRegion: process.env.AZURE_SPEECH_REGION ?? "",
+  audioStorageUploadUrlTemplate: process.env.AUDIO_STORAGE_UPLOAD_URL_TEMPLATE ?? "",
+  audioStoragePublicUrlTemplate: process.env.AUDIO_STORAGE_PUBLIC_URL_TEMPLATE ?? "",
 };

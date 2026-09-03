@@ -3,6 +3,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 
 import {
   activityCompletions,
+  audioAssets,
   type InsertUser,
   learningNodeSteps,
   learningNodes,
@@ -456,6 +457,28 @@ export async function getDb() {
     }
   }
   return _db;
+}
+
+export async function getAudioAssetByHash(textHash: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(audioAssets).where(eq(audioAssets.textHash, textHash)).limit(1);
+  return rows[0];
+}
+
+export async function saveAudioAsset(asset: typeof audioAssets.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para guardar áudio");
+  await db.insert(audioAssets).values(asset).onDuplicateKeyUpdate({
+    set: {
+      storageKey: asset.storageKey,
+      publicUrl: asset.publicUrl,
+      durationMs: asset.durationMs,
+      fileSizeBytes: asset.fileSizeBytes,
+      status: asset.status,
+      errorMessage: asset.errorMessage,
+    },
+  });
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {

@@ -4,14 +4,18 @@ import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   getLearningMapData,
   getLearningNodeData,
   getLessonData,
   submitActivityData,
+  getAudioAssetByHash,
+  saveAudioAsset,
 } from "./db";
 import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "./dictionary";
+import { audioAssetInputSchema } from "./domain/audio";
+import { generateAndUploadAudio, getAudioAssetPlan } from "./audio-service";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
 const activityType = z.enum(["multiple_choice", "word_order", "context_choice", "fill_blank"]);
@@ -80,6 +84,27 @@ export const appRouter = router({
           }
           throw error;
         });
+      }),
+  }),
+
+  adminAudio: router({
+    generate: adminProcedure
+      .input(audioAssetInputSchema)
+      .mutation(async ({ input }) => {
+        const plan = getAudioAssetPlan(input);
+        const databasePlan = { ...plan, rate: String(plan.rate) };
+        const existing = await getAudioAssetByHash(plan.textHash);
+        if (existing?.status === "ready") return existing;
+        await saveAudioAsset({ ...databasePlan, status: "processing", errorMessage: null });
+        try {
+          const generated = await generateAndUploadAudio(input);
+          const asset = { ...plan, ...generated, id: plan.id, rate: String(generated.rate) };
+          await saveAudioAsset(asset);
+          return asset;
+        } catch (error) {
+          await saveAudioAsset({ ...databasePlan, status: "failed", errorMessage: error instanceof Error ? error.message : "Falha desconhecida" });
+          throw error;
+        }
       }),
   }),
 

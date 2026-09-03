@@ -19,5 +19,5 @@ CREATE TABLE `audio_assets` (
 	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
 	CONSTRAINT `audio_assets_id` PRIMARY KEY(`id`),
 	CONSTRAINT `audio_assets_textHash_unique` UNIQUE(`textHash`),
-	CONSTRAINT `audio_assets_content_idx` UNIQUE(`contentType`,`contentId`)
+	KEY `audio_assets_content_idx` (`contentType`,`contentId`)
 );

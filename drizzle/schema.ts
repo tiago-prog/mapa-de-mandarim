@@ -1,6 +1,7 @@
 import {
   boolean,
   int,
+  index,
   mysqlEnum,
   mysqlTable,
   primaryKey,
@@ -143,7 +144,7 @@ export const audioAssets = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
-    contentIdx: uniqueIndex("audio_assets_content_idx").on(table.contentType, table.contentId),
+    contentIdx: index("audio_assets_content_idx").on(table.contentType, table.contentId),
   }),
 );
 
