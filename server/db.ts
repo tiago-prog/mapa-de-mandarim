@@ -656,6 +656,11 @@ function evaluateActivity(
     return { isCorrect: JSON.stringify(normalizedOrder) === JSON.stringify(activity.correctOrder), selectedOptionId: JSON.stringify(normalizedOrder) };
   }
   const normalizedSelection = selectedOptionId ?? "";
+  if (activity.type === "fill_blank") {
+    const normalize = (value: string) => value.trim().replace(/[。！？!?.,，、\s]+$/g, "");
+    const expectedAnswer = activity.expectedAnswer ?? "";
+    return { isCorrect: Boolean(expectedAnswer) && normalize(expectedAnswer) === normalize(normalizedSelection), selectedOptionId: normalizedSelection };
+  }
   return { isCorrect: Boolean(activity.correctOptionId) && activity.correctOptionId === normalizedSelection, selectedOptionId: normalizedSelection };
 }
 

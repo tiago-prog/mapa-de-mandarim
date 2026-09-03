@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -42,6 +42,7 @@ export default function LessonScreen() {
   const activeStepId = Array.isArray(stepId) ? stepId[0] : stepId;
   const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<string[]>([]);
+  const [textAnswer, setTextAnswer] = useState("");
   const [result, setResult] = useState<LessonSubmission | null>(null);
   const [showHint, setShowHint] = useState(false);
   const [showTranslations, setShowTranslations] = useState(false);
@@ -90,6 +91,7 @@ export default function LessonScreen() {
   const resetAttempt = () => {
     setSelectedOptionId(null);
     setSelectedOrder([]);
+    setTextAnswer("");
     setResult(null);
     setShowHint(false);
     submitMutation.reset();
@@ -112,12 +114,13 @@ export default function LessonScreen() {
   const submitActivity = async () => {
     if (!activity || submitMutation.isPending) return;
     if (activity.type === "word_order" && selectedOrder.length === 0) return;
-    if (activity.type !== "word_order" && !selectedOptionId) return;
+    if (activity.type === "fill_blank" && !textAnswer.trim()) return;
+    if (activity.type !== "word_order" && activity.type !== "fill_blank" && !selectedOptionId) return;
     await submitMutation.mutateAsync({
       nodeId: lesson.node.id,
       stepId: lesson.step.id,
       activityId: activity.id,
-      selectedOptionId: activity.type === "word_order" ? undefined : selectedOptionId ?? undefined,
+      selectedOptionId: activity.type === "word_order" ? undefined : activity.type === "fill_blank" ? textAnswer : selectedOptionId ?? undefined,
       selectedOrder: activity.type === "word_order" ? selectedOrder : undefined,
       clientEventId: createClientEventId(),
     });
@@ -292,6 +295,22 @@ export default function LessonScreen() {
                     })}
                   </View>
                 </View>
+              ) : activity.type === "fill_blank" ? (
+                <View className="gap-3">
+                  <TextInput
+                    value={textAnswer}
+                    onChangeText={setTextAnswer}
+                    editable={!isResultVisible}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                    placeholder="Digite a palavra que falta"
+                    placeholderTextColor={colors.muted}
+                    accessibilityLabel="Resposta da lacuna"
+                    style={[styles.textAnswer, { color: colors.foreground, borderColor: isResultVisible ? colors.border : colors.primary, backgroundColor: colors.surface }]}
+                  />
+                  <Text className="text-sm leading-5 text-muted">Você pode incluir ou omitir a pontuação final.</Text>
+                  {isResultVisible && !isCorrect && result?.correctAnswer ? <Text className="text-sm font-semibold text-primary">Resposta esperada: {result.correctAnswer}</Text> : null}
+                </View>
               ) : (
                 <View className="gap-3">
                   {activity.options.map((option) => {
@@ -343,7 +362,7 @@ export default function LessonScreen() {
                   <AppButton label="Tentar novamente" onPress={resetAttempt} />
                 )
               ) : (
-                <AppButton label="Responder" disabled={activity.type === "word_order" ? selectedOrder.length === 0 : !selectedOptionId} loading={submitMutation.isPending} onPress={() => void submitActivity()} />
+                <AppButton label="Responder" disabled={activity.type === "word_order" ? selectedOrder.length === 0 : activity.type === "fill_blank" ? !textAnswer.trim() : !selectedOptionId} loading={submitMutation.isPending} onPress={() => void submitActivity()} />
               )
             ) : (
               <AppButton label={lesson.nextStepId ? "Próxima etapa" : "Voltar ao nó"} onPress={() => goToStep(lesson.nextStepId)} />
@@ -357,6 +376,15 @@ export default function LessonScreen() {
 }
 
 const styles = StyleSheet.create({
+  textAnswer: {
+    minHeight: 58,
+    borderWidth: 2,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    fontSize: 24,
+    fontWeight: "700",
+    textAlign: "center",
+  },
   option: {
     minHeight: 58,
     flexDirection: "row",

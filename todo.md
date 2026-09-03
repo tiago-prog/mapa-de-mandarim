@@ -189,6 +189,6 @@
 - [x] Proteger o gabarito nas queries e retorná-lo apenas após a tentativa
 - [x] Validar o percurso em testes de domínio e integração
 - [ ] Adicionar áudio real de pronúncia
-- [ ] Criar atividade de preenchimento de lacuna
+- [x] Criar atividade de preenchimento de lacuna
 - [ ] Criar missão final com diálogo completo
 - [ ] Conectar revisão e SRS ao fechamento do nó

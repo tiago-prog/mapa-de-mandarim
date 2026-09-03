@@ -76,5 +76,18 @@ describe("learning vertical slice", () => {
     expect(updatedMap.nodes.find((node) => node.id === "intro")?.status).toBe("completed");
     expect(updatedMap.nodes.find((node) => node.id === "identity")?.status).toBe("available");
     expect(updatedMap.recommendedNodeId).toBe("identity");
+
+    const fillBlank = await caller.lesson.get({ nodeId: "ask-name", stepId: "ask-name-practice", activityId: "ask-name-practice-fill" });
+    expect(fillBlank.activity?.type).toBe("fill_blank");
+    expect(fillBlank.activity).not.toHaveProperty("expectedAnswer");
+    const fillSubmission = await caller.lesson.submitActivity({
+      nodeId: "ask-name",
+      stepId: "ask-name-practice",
+      activityId: "ask-name-practice-fill",
+      selectedOptionId: "什么。",
+      clientEventId: "integration-ask-name-fill-20260902",
+    });
+    expect(fillSubmission.isCorrect).toBe(true);
+    expect(fillSubmission.xpAwarded).toBe(15);
   });
 });
