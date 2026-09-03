@@ -190,5 +190,5 @@
 - [x] Validar o percurso em testes de domínio e integração
 - [ ] Adicionar áudio real de pronúncia
 - [x] Criar atividade de preenchimento de lacuna
-- [ ] Criar missão final com diálogo completo
+- [x] Criar missão final com diálogo completo
 - [ ] Conectar revisão e SRS ao fechamento do nó

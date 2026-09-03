@@ -89,5 +89,38 @@ describe("learning vertical slice", () => {
     });
     expect(fillSubmission.isCorrect).toBe(true);
     expect(fillSubmission.xpAwarded).toBe(15);
+
+    const mission = await caller.lesson.get({ nodeId: "dialogue", stepId: "dialogue-application" });
+    expect(mission.step.title).toBe("Missão final · diálogo completo");
+    expect(mission.activity?.id).toBe("dialogue-application-greeting");
+    expect(mission.activity).not.toHaveProperty("correctOptionId");
+
+    const dialoguePractice = await caller.lesson.submitActivity({
+      nodeId: "dialogue",
+      stepId: "dialogue-practice",
+      activityId: "dialogue-practice-meaning",
+      selectedOptionId: "chamar",
+      clientEventId: "integration-dialogue-practice-20260902",
+    });
+    expect(dialoguePractice.isCorrect).toBe(true);
+
+    for (const [activityId, selectedOptionId] of [
+      ["dialogue-application-greeting", "mission-greeting"],
+      ["dialogue-application-name", "mission-name"],
+      ["dialogue-application-question", "mission-question"],
+    ] as const) {
+      const submission = await caller.lesson.submitActivity({
+        nodeId: "dialogue",
+        stepId: "dialogue-application",
+        activityId,
+        selectedOptionId,
+        clientEventId: `integration-${activityId}-20260902`,
+      });
+      expect(submission.isCorrect).toBe(true);
+    }
+
+    const completedMission = await caller.learningMap.getNode({ nodeId: "dialogue" });
+    expect(completedMission.node.status).toBe("completed");
+    expect(completedMission.node.progressPercent).toBe(100);
   });
 });
