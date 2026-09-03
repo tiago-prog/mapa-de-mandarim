@@ -11,6 +11,12 @@ import {
   getLessonData,
   submitActivityData,
 } from "./db";
+import {
+  getDictionaryEntry,
+  searchDictionary,
+  setDictionaryEntryStatus,
+  type WordStatus,
+} from "./dictionary";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
 
@@ -78,6 +84,52 @@ export const appRouter = router({
       const map = await getLearningMapData(getUserId(ctx.user?.id));
       return map.userProgress;
     }),
+  }),
+
+  dictionary: router({
+    search: publicProcedure
+      .input(
+        z.object({
+          query: z.string().max(80).default(""),
+          limit: z.number().int().min(1).max(50).default(20),
+        }),
+      )
+      .query(({ ctx, input }) => searchDictionary(getUserId(ctx.user?.id), input.query, input.limit)),
+    get: publicProcedure
+      .input(z.object({ entryId: z.string().min(1).max(64) }))
+      .query(({ ctx, input }) => {
+        return getDictionaryEntry(getUserId(ctx.user?.id), input.entryId).then((entry) => {
+          if (!entry) {
+            throw new TRPCError({ code: "NOT_FOUND", message: "Palavra não encontrada" });
+          }
+          return entry;
+        });
+      }),
+    myWords: publicProcedure
+      .input(
+        z.object({
+          status: z.enum(["known", "learning"]).optional(),
+        }),
+      )
+      .query(async ({ ctx, input }) => {
+        const entries = await searchDictionary(getUserId(ctx.user?.id), "", 50);
+        return input.status ? entries.filter((entry) => entry.status === input.status) : entries.filter((entry) => entry.status !== "new");
+      }),
+    setStatus: publicProcedure
+      .input(
+        z.object({
+          entryId: z.string().min(1).max(64),
+          status: z.enum(["new", "known", "learning"]),
+        }),
+      )
+      .mutation(({ ctx, input }) => {
+        return setDictionaryEntryStatus(getUserId(ctx.user?.id), input.entryId, input.status as WordStatus).catch((error: unknown) => {
+          if (error instanceof Error && error.message === "Palavra não encontrada") {
+            throw new TRPCError({ code: "NOT_FOUND", message: error.message });
+          }
+          throw error;
+        });
+      }),
   }),
 });
 

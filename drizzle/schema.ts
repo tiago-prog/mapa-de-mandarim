@@ -92,6 +92,20 @@ export const lessonActivities = mysqlTable(
   }),
 );
 
+export const userWordStates = mysqlTable(
+  "user_word_states",
+  {
+    userId: int("userId").notNull(),
+    lexicalEntryId: varchar("lexicalEntryId", { length: 64 }).notNull(),
+    status: mysqlEnum("status", ["new", "known", "learning"]).default("new").notNull(),
+    lastSeenAt: timestamp("lastSeenAt"),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.userId, table.lexicalEntryId] }),
+  }),
+);
+
 export const userNodeProgress = mysqlTable(
   "user_node_progress",
   {
@@ -133,6 +147,7 @@ export type LearningPath = typeof learningPaths.$inferSelect;
 export type LearningNode = typeof learningNodes.$inferSelect;
 export type LexicalEntry = typeof lexicalEntries.$inferSelect;
 export type LessonActivity = typeof lessonActivities.$inferSelect;
+export type UserWordState = typeof userWordStates.$inferSelect;
 export type UserNodeProgress = typeof userNodeProgress.$inferSelect;
 export type UserProgress = typeof userProgress.$inferSelect;
 export type ActivityCompletion = typeof activityCompletions.$inferSelect;

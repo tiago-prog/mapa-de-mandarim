@@ -37,11 +37,11 @@
 ## Etapa 4 — Dicionário e palavras conhecidas
 
 - [ ] Importar dataset lexical selecionado do Caderno de Mandarim
-- [ ] Criar entidade de entrada lexical
-- [ ] Criar busca por hanzi, pinyin e significado
-- [ ] Criar ficha detalhada da palavra
-- [ ] Criar estado pessoal da palavra
-- [ ] Criar lista Minhas palavras
+- [x] Criar entidade de entrada lexical
+- [x] Criar busca por hanzi, pinyin e significado
+- [x] Criar ficha detalhada da palavra
+- [x] Criar estado pessoal da palavra
+- [x] Criar lista Minhas palavras
 - [ ] Adicionar áudio de pronúncia quando disponível
 
 ## Etapa 5 — Mapa e trilha inicial
@@ -88,7 +88,7 @@
 
 - [ ] Testar fluxo completo de primeiro acesso
 - [ ] Testar fluxo completo de aprendizagem de um nó
-- [ ] Testar fluxo de consulta no dicionário
+- [x] Testar fluxo de consulta no dicionário
 - [ ] Testar fluxo de revisão
 - [ ] Testar persistência de progresso
 - [ ] Testar estados de erro e reconexão
@@ -160,3 +160,16 @@
 - [x] Validar export estático web
 - [ ] Aplicar a migração no banco do ambiente de desenvolvimento/staging
 - [ ] Substituir o fallback de preview por dados reais após configurar o banco
+
+## Etapa 3 — Dicionário e palavras conhecidas
+
+- [x] Criar busca por hanzi, pinyin e significado
+- [x] Criar ficha contextual com exemplo em mandarim e tradução
+- [x] Criar estados nova, conhecida e em aprendizado
+- [x] Criar filtro de palavras conhecidas e em aprendizado
+- [x] Persistir estado pessoal quando o banco estiver disponível
+- [x] Manter fallback local para preview sem banco
+- [x] Adicionar testes de busca e atualização de estado
+- [x] Gerar migração Drizzle `0002_lowly_epoch.sql`
+- [ ] Importar o dataset lexical completo selecionado do Caderno de Mandarim
+- [ ] Adicionar áudio de pronúncia
