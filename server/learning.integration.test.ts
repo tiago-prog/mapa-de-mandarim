@@ -16,27 +16,61 @@ function createContext(): TrpcContext {
 }
 
 describe("learning vertical slice", () => {
-  it("loads the first node, completes its lesson and unlocks the next node", async () => {
+  it("loads the lesson plan, completes its activities and unlocks the next node", async () => {
     const caller = appRouter.createCaller(createContext());
     const initialMap = await caller.learningMap.get();
     const firstNode = initialMap.nodes.find((node) => node.id === "intro");
 
     expect(initialMap.recommendedNodeId).toBe("intro");
     expect(firstNode?.status).toBe("available");
+    expect(firstNode?.stepCount).toBe(7);
+    expect(firstNode?.activityCount).toBe(3);
 
-    const lesson = await caller.lesson.get({ nodeId: "intro" });
-    expect(lesson.activity?.correctOptionId).toBe("eu-me-chamo");
+    const objective = await caller.lesson.get({ nodeId: "intro" });
+    expect(objective.step.kind).toBe("objective");
+    expect(objective.activity).toBeNull();
+    expect(objective.step.content.kind).toBe("objective");
 
-    const submission = await caller.lesson.submitActivity({
+    const context = await caller.lesson.get({ nodeId: "intro", stepId: "intro-context" });
+    expect(context.step.kind).toBe("context");
+    expect(context.activity).toBeNull();
+    expect(context.step.content.kind).toBe("context");
+
+    const practice = await caller.lesson.get({ nodeId: "intro", stepId: "intro-practice" });
+    expect(practice.activity?.id).toBe("intro-practice-meaning");
+    expect(practice.activity).not.toHaveProperty("correctOptionId");
+    expect(practice.activity).not.toHaveProperty("correctOrder");
+
+    const firstSubmission = await caller.lesson.submitActivity({
       nodeId: "intro",
-      activityId: lesson.activity!.id,
+      stepId: "intro-practice",
+      activityId: "intro-practice-meaning",
       selectedOptionId: "eu-me-chamo",
-      clientEventId: "integration-intro-20260902",
+      clientEventId: "integration-intro-meaning-20260902",
     });
+    expect(firstSubmission.isCorrect).toBe(true);
+    expect(firstSubmission.xpAwarded).toBe(15);
+    expect(firstSubmission.node.progressPercent).toBe(33);
 
-    expect(submission.isCorrect).toBe(true);
-    expect(submission.xpAwarded).toBe(40);
-    expect(submission.userProgress.completedNodeCount).toBe(1);
+    const secondSubmission = await caller.lesson.submitActivity({
+      nodeId: "intro",
+      stepId: "intro-practice",
+      activityId: "intro-practice-order",
+      selectedOrder: ["我", "叫", "安娜"],
+      clientEventId: "integration-intro-order-20260902",
+    });
+    expect(secondSubmission.isCorrect).toBe(true);
+    expect(secondSubmission.node.progressPercent).toBe(67);
+
+    const finalSubmission = await caller.lesson.submitActivity({
+      nodeId: "intro",
+      stepId: "intro-application",
+      activityId: "intro-application-context",
+      selectedOptionId: "answer-name",
+      clientEventId: "integration-intro-application-20260902",
+    });
+    expect(finalSubmission.isCorrect).toBe(true);
+    expect(finalSubmission.node.progressPercent).toBe(100);
 
     const updatedMap = await caller.learningMap.get();
     expect(updatedMap.nodes.find((node) => node.id === "intro")?.status).toBe("completed");

@@ -11,14 +11,10 @@ import {
   getLessonData,
   submitActivityData,
 } from "./db";
-import {
-  getDictionaryEntry,
-  searchDictionary,
-  setDictionaryEntryStatus,
-  type WordStatus,
-} from "./dictionary";
+import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "./dictionary";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
+const activityType = z.enum(["multiple_choice", "word_order", "context_choice", "fill_blank"]);
 
 export const appRouter = router({
   system: systemRouter,
@@ -41,9 +37,7 @@ export const appRouter = router({
       .input(z.object({ nodeId: z.string().min(1).max(64) }))
       .query(({ ctx, input }) => {
         return getLearningNodeData(getUserId(ctx.user?.id), input.nodeId).then((node) => {
-          if (!node) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Nó de aprendizagem não encontrado" });
-          }
+          if (!node) throw new TRPCError({ code: "NOT_FOUND", message: "Nó de aprendizagem não encontrado" });
           return node;
         });
       }),
@@ -51,12 +45,16 @@ export const appRouter = router({
 
   lesson: router({
     get: publicProcedure
-      .input(z.object({ nodeId: z.string().min(1).max(64) }))
+      .input(
+        z.object({
+          nodeId: z.string().min(1).max(64),
+          stepId: z.string().min(1).max(80).optional(),
+          activityId: z.string().min(1).max(64).optional(),
+        }),
+      )
       .query(({ ctx, input }) => {
-        return getLessonData(getUserId(ctx.user?.id), input.nodeId).then((lesson) => {
-          if (!lesson?.activity) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Lição não encontrada" });
-          }
+        return getLessonData(getUserId(ctx.user?.id), input.nodeId, input.stepId, input.activityId).then((lesson) => {
+          if (!lesson) throw new TRPCError({ code: "NOT_FOUND", message: "Etapa não encontrada" });
           return lesson;
         });
       }),
@@ -64,9 +62,15 @@ export const appRouter = router({
       .input(
         z.object({
           nodeId: z.string().min(1).max(64),
+          stepId: z.string().min(1).max(80),
           activityId: z.string().min(1).max(64),
-          selectedOptionId: z.string().min(1).max(64),
+          selectedOptionId: z.string().min(1).max(255).optional(),
+          selectedOrder: z.array(z.string().min(1).max(80)).max(20).optional(),
           clientEventId: z.string().min(8).max(96),
+        }).superRefine((input, context) => {
+          if (!input.selectedOptionId && !input.selectedOrder?.length) {
+            context.addIssue({ code: "custom", message: "Selecione ou organize uma resposta", path: ["selectedOptionId"] });
+          }
         }),
       )
       .mutation(({ ctx, input }) => {
@@ -88,48 +92,28 @@ export const appRouter = router({
 
   dictionary: router({
     search: publicProcedure
-      .input(
-        z.object({
-          query: z.string().max(80).default(""),
-          limit: z.number().int().min(1).max(50).default(20),
-        }),
-      )
+      .input(z.object({ query: z.string().max(80).default(""), limit: z.number().int().min(1).max(50).default(20) }))
       .query(({ ctx, input }) => searchDictionary(getUserId(ctx.user?.id), input.query, input.limit)),
     get: publicProcedure
       .input(z.object({ entryId: z.string().min(1).max(64) }))
-      .query(({ ctx, input }) => {
-        return getDictionaryEntry(getUserId(ctx.user?.id), input.entryId).then((entry) => {
-          if (!entry) {
-            throw new TRPCError({ code: "NOT_FOUND", message: "Palavra não encontrada" });
-          }
-          return entry;
-        });
-      }),
+      .query(({ ctx, input }) => getDictionaryEntry(getUserId(ctx.user?.id), input.entryId).then((entry) => {
+        if (!entry) throw new TRPCError({ code: "NOT_FOUND", message: "Palavra não encontrada" });
+        return entry;
+      })),
     myWords: publicProcedure
-      .input(
-        z.object({
-          status: z.enum(["known", "learning"]).optional(),
-        }),
-      )
+      .input(z.object({ status: z.enum(["known", "learning"]).optional() }))
       .query(async ({ ctx, input }) => {
         const entries = await searchDictionary(getUserId(ctx.user?.id), "", 50);
         return input.status ? entries.filter((entry) => entry.status === input.status) : entries.filter((entry) => entry.status !== "new");
       }),
     setStatus: publicProcedure
-      .input(
-        z.object({
-          entryId: z.string().min(1).max(64),
-          status: z.enum(["new", "known", "learning"]),
-        }),
-      )
-      .mutation(({ ctx, input }) => {
-        return setDictionaryEntryStatus(getUserId(ctx.user?.id), input.entryId, input.status as WordStatus).catch((error: unknown) => {
-          if (error instanceof Error && error.message === "Palavra não encontrada") {
-            throw new TRPCError({ code: "NOT_FOUND", message: error.message });
-          }
-          throw error;
-        });
-      }),
+      .input(z.object({ entryId: z.string().min(1).max(64), status: z.enum(["new", "known", "learning"]) }))
+      .mutation(({ ctx, input }) => setDictionaryEntryStatus(getUserId(ctx.user?.id), input.entryId, input.status).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "Palavra não encontrada") {
+          throw new TRPCError({ code: "NOT_FOUND", message: error.message });
+        }
+        throw error;
+      })),
   }),
 });
 

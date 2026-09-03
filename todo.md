@@ -173,3 +173,22 @@
 - [x] Gerar migração Drizzle `0002_lowly_epoch.sql`
 - [ ] Importar o dataset lexical completo selecionado do Caderno de Mandarim
 - [ ] Adicionar áudio de pronúncia
+
+## Etapa 4 — Nós como unidades pedagógicas
+
+- [x] Definir sete etapas por nó: objetivo, contexto, vocabulário, gramática, prática, aplicação e revisão
+- [x] Criar objetivo comunicativo e critérios de sucesso por nó
+- [x] Adicionar diálogos contextualizados com tradução revelável
+- [x] Adicionar vocabulário e exemplos vinculados a cada nó
+- [x] Adicionar explicações gramaticais curtas e orientadas ao uso
+- [x] Criar prática de reconhecimento sem expor o gabarito antes da resposta
+- [x] Criar prática de ordenação de frase
+- [x] Criar aplicação contextual ao final da prática
+- [x] Calcular progresso pela conclusão das atividades essenciais
+- [x] Exibir plano de ensino e número de etapas no detalhe do nó
+- [x] Proteger o gabarito nas queries e retorná-lo apenas após a tentativa
+- [x] Validar o percurso em testes de domínio e integração
+- [ ] Adicionar áudio real de pronúncia
+- [ ] Criar atividade de preenchimento de lacuna
+- [ ] Criar missão final com diálogo completo
+- [ ] Conectar revisão e SRS ao fechamento do nó

@@ -108,6 +108,7 @@ export default function MapScreen() {
                         {isRecommended ? <Text className="text-xs font-semibold text-warning">PRÓXIMO</Text> : null}
                       </View>
                       <Text className={`text-sm leading-5 ${isRecommended ? "text-surface" : "text-muted"}`}>{node.description}</Text>
+                      <Text className={`text-xs font-semibold ${isRecommended ? "text-warning" : "text-primary"}`}>{node.stepCount} etapas · {node.activityCount} práticas</Text>
                       {node.status !== "locked" ? (
                         <Text className={`text-xs font-semibold ${isRecommended ? "text-warning" : "text-primary"}`}>{node.progressPercent}% concluído</Text>
                       ) : (

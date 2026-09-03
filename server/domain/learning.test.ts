@@ -21,7 +21,7 @@ describe("learning domain", () => {
     const progress = new Map<string, NodeProgressSnapshot>([
       [
         "intro",
-        { nodeId: "intro", status: "completed", progressPercent: 100, completedAt: new Date() },
+        { nodeId: "intro", status: "completed", progressPercent: 100, completedActivityIds: ["a", "b"], completedAt: new Date() },
       ],
     ]);
 
@@ -30,23 +30,34 @@ describe("learning domain", () => {
     expect(getRecommendedNode(MVP_NODES, progress).id).toBe("identity");
   });
 
-  it("awards XP once and never regresses a completed node", () => {
-    const first = applyActivityCompletion(
-      { nodeId: "intro", status: "in_progress", progressPercent: 35, completedAt: null },
-      { xp: 0, streakDays: 0, completedNodeCount: 0 },
-      true,
-      new Date("2026-09-02T12:00:00Z"),
-    );
-    const repeatedWrong = applyActivityCompletion(
-      first.nodeProgress,
-      first.userProgress,
-      false,
-      new Date("2026-09-02T12:01:00Z"),
-    );
+  it("increments node progress and completes only after all activities", () => {
+    const initial = {
+      nodeId: "intro",
+      status: "in_progress" as const,
+      progressPercent: 0,
+      completedActivityIds: [],
+      completedAt: null,
+    };
+    const first = applyActivityCompletion(initial, "activity-1", { xp: 0, streakDays: 0, completedNodeCount: 0 }, true, new Date("2026-09-02T12:00:00Z"), 3);
+    const second = applyActivityCompletion(first.nodeProgress, "activity-2", first.userProgress, true, new Date("2026-09-02T12:01:00Z"), 3);
+    const final = applyActivityCompletion(second.nodeProgress, "activity-3", second.userProgress, true, new Date("2026-09-02T12:02:00Z"), 3);
 
-    expect(first.xpAwarded).toBe(40);
-    expect(first.userProgress).toMatchObject({ xp: 40, completedNodeCount: 1 });
-    expect(repeatedWrong.xpAwarded).toBe(0);
-    expect(repeatedWrong.nodeProgress).toMatchObject({ status: "completed", progressPercent: 100 });
+    expect(first.xpAwarded).toBe(15);
+    expect(first.nodeProgress).toMatchObject({ status: "in_progress", progressPercent: 33, completedActivityIds: ["activity-1"] });
+    expect(second.nodeProgress).toMatchObject({ status: "in_progress", progressPercent: 67, completedActivityIds: ["activity-1", "activity-2"] });
+    expect(final.xpAwarded).toBe(15);
+    expect(final.nodeProgress).toMatchObject({ status: "completed", progressPercent: 100 });
+    expect(final.userProgress).toMatchObject({ xp: 45, completedNodeCount: 1 });
+  });
+
+  it("does not award XP twice for the same activity", () => {
+    const progress = { nodeId: "intro", status: "in_progress" as const, progressPercent: 0, completedActivityIds: [], completedAt: null };
+    const first = applyActivityCompletion(progress, "activity-1", { xp: 0, streakDays: 0, completedNodeCount: 0 }, true, new Date(), 1);
+    const repeated = applyActivityCompletion(first.nodeProgress, "activity-1", first.userProgress, true, new Date(), 1);
+
+    expect(first.xpAwarded).toBe(15);
+    expect(repeated.xpAwarded).toBe(0);
+    expect(repeated.userProgress.xp).toBe(15);
+    expect(repeated.nodeProgress.status).toBe("completed");
   });
 });

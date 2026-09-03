@@ -71,19 +71,47 @@ export const nodeLexicalEntries = mysqlTable(
   }),
 );
 
+export const learningNodeSteps = mysqlTable(
+  "learning_node_steps",
+  {
+    id: varchar("id", { length: 80 }).primaryKey(),
+    nodeId: varchar("nodeId", { length: 64 }).notNull(),
+    orderIndex: int("orderIndex").notNull(),
+    kind: mysqlEnum("kind", ["objective", "context", "vocabulary", "grammar", "practice", "application", "review"]).notNull(),
+    title: varchar("title", { length: 180 }).notNull(),
+    description: text("description").notNull(),
+    contentJson: text("contentJson").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    nodeOrderIdx: uniqueIndex("learning_node_steps_node_order_idx").on(table.nodeId, table.orderIndex),
+  }),
+);
+
 export const lessonActivities = mysqlTable(
   "lesson_activities",
   {
     id: varchar("id", { length: 64 }).primaryKey(),
     nodeId: varchar("nodeId", { length: 64 }).notNull(),
-    type: mysqlEnum("type", ["multiple_choice"]).notNull(),
+    stepId: varchar("stepId", { length: 80 }).notNull(),
+    type: mysqlEnum("type", ["multiple_choice", "word_order", "context_choice", "fill_blank"]).notNull(),
     orderIndex: int("orderIndex").notNull(),
+    title: varchar("title", { length: 180 }).notNull(),
+    instruction: text("instruction").notNull(),
+    explanation: text("explanation").notNull(),
+    hint: text("hint").notNull(),
     prompt: varchar("prompt", { length: 255 }).notNull(),
     hanzi: varchar("hanzi", { length: 80 }).notNull(),
     pinyin: varchar("pinyin", { length: 160 }).notNull(),
     meaning: varchar("meaning", { length: 255 }).notNull(),
     optionsJson: text("optionsJson").notNull(),
-    correctOptionId: varchar("correctOptionId", { length: 64 }).notNull(),
+    tokensJson: text("tokensJson").notNull(),
+    correctOrderJson: text("correctOrderJson").notNull(),
+    expectedAnswer: varchar("expectedAnswer", { length: 255 }),
+    correctOptionId: varchar("correctOptionId", { length: 64 }),
+    feedbackCorrect: text("feedbackCorrect").notNull(),
+    feedbackIncorrect: text("feedbackIncorrect").notNull(),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
@@ -113,6 +141,7 @@ export const userNodeProgress = mysqlTable(
     nodeId: varchar("nodeId", { length: 64 }).notNull(),
     status: mysqlEnum("status", ["in_progress", "completed"]).default("in_progress").notNull(),
     progressPercent: int("progressPercent").default(0).notNull(),
+    completedActivityIdsJson: text("completedActivityIdsJson").notNull().default("[]"),
     completedAt: timestamp("completedAt"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -146,6 +175,7 @@ export type InsertUser = typeof users.$inferInsert;
 export type LearningPath = typeof learningPaths.$inferSelect;
 export type LearningNode = typeof learningNodes.$inferSelect;
 export type LexicalEntry = typeof lexicalEntries.$inferSelect;
+export type LearningNodeStep = typeof learningNodeSteps.$inferSelect;
 export type LessonActivity = typeof lessonActivities.$inferSelect;
 export type UserWordState = typeof userWordStates.$inferSelect;
 export type UserNodeProgress = typeof userNodeProgress.$inferSelect;
