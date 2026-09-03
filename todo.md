@@ -46,22 +46,22 @@
 
 ## Etapa 5 — Mapa e trilha inicial
 
-- [ ] Criar entidades de trilha e nó
-- [ ] Criar relações de pré-requisito
-- [ ] Criar estados visuais dos nós
-- [ ] Implementar mapa vertical mobile
-- [ ] Criar detalhe do nó
-- [ ] Criar progresso por nó
-- [ ] Configurar primeira trilha de aprendizagem
+- [x] Criar entidades de trilha e nó
+- [x] Criar relações de pré-requisito
+- [x] Criar estados visuais dos nós
+- [x] Implementar mapa vertical mobile
+- [x] Criar detalhe do nó
+- [x] Criar progresso por nó
+- [x] Configurar primeira trilha de aprendizagem
 
 ## Etapa 6 — Etapa intermediária e missões
 
 - [ ] Criar atividades de associação
 - [ ] Criar atividades de reconhecimento em frase
-- [ ] Criar atividade de ordenação de frase
-- [ ] Criar atividade de preenchimento de lacuna
+- [x] Criar atividade de ordenação de frase
+- [x] Criar atividade de preenchimento de lacuna
 - [ ] Criar entidade de missão
-- [ ] Criar missão final da primeira trilha
+- [x] Criar missão final da primeira trilha
 - [ ] Registrar conclusão da atividade e da missão
 
 ## Etapa 7 — Flashcards e SRS
@@ -76,13 +76,13 @@
 
 ## Etapa 8 — Gamificação e progresso
 
-- [ ] Criar XP
+- [x] Criar XP
 - [ ] Criar sequência diária
 - [ ] Criar regras de domínio por nó
-- [ ] Implementar desbloqueio de nós
+- [x] Implementar desbloqueio de nós
 - [ ] Criar conquistas iniciais
 - [ ] Mostrar resultado pós-atividade
-- [ ] Atualizar visualmente o mapa após progresso
+- [x] Atualizar visualmente o mapa após progresso
 
 ## Etapa 9 — Validação do MVP
 
@@ -94,8 +94,8 @@
 - [ ] Testar estados de erro e reconexão
 - [ ] Validar uso em telas portrait pequenas
 - [ ] Validar acessibilidade básica
-- [ ] Executar TypeScript, lint e testes
-- [ ] Criar checkpoint da primeira entrega funcional
+- [x] Executar TypeScript, lint e testes
+- [x] Criar checkpoint da primeira entrega funcional
 
 ## Pós-MVP
 
