@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 
@@ -9,6 +9,7 @@ import { AudioButton } from "@/components/ui/audio-button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+import { collectAudioUrls, preloadAudioFiles } from "@/lib/audio-cache";
 
 function createClientEventId() {
   return `lesson-${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
@@ -61,6 +62,14 @@ export default function LessonScreen() {
       void utils.lesson.get.invalidate({ nodeId: submission.nodeId, stepId: activeStepId });
     },
   });
+
+  useEffect(() => {
+    const lessonPayload = lessonQuery.data;
+    if (!lessonPayload) return;
+    const audioItems = collectAudioUrls(lessonPayload);
+    if (!audioItems.length) return;
+    void preloadAudioFiles(audioItems).then(() => undefined);
+  }, [lessonQuery.data]);
 
   if (lessonQuery.isLoading) {
     return (

@@ -5,20 +5,25 @@ import { useEffect, useMemo, useState } from "react";
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, type StyleProp, type ViewStyle } from "react-native";
 
 import { useColors } from "@/hooks/use-colors";
+import { cacheAudioFile, getCachedAudioUri } from "@/lib/audio-cache";
 
 type AudioButtonProps = {
   text: string;
   audioUrl?: string | null;
+  textHash?: string | null;
   label?: string;
   rate?: number;
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-export function AudioButton({ text, audioUrl, label = "Ouvir", rate = 0.85, compact = false, style }: AudioButtonProps) {
+export function AudioButton({ text, audioUrl, textHash, label = "Ouvir", rate = 0.85, compact = false, style }: AudioButtonProps) {
   const colors = useColors();
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const source = useMemo(() => audioUrl?.trim() || null, [audioUrl]);
+  const remoteSource = useMemo(() => audioUrl?.trim() || null, [audioUrl]);
+  const [cachedSource, setCachedSource] = useState<{ key: string; uri: string } | null>(null);
+  const sourceKey = remoteSource && textHash ? `${remoteSource}:${textHash}` : null;
+  const source = sourceKey && cachedSource?.key === sourceKey ? cachedSource.uri : remoteSource;
   const player = useAudioPlayer(source, { downloadFirst: true });
   const status = useAudioPlayerStatus(player);
 
@@ -26,6 +31,17 @@ export function AudioButton({ text, audioUrl, label = "Ouvir", rate = 0.85, comp
     void setAudioModeAsync({ playsInSilentMode: true, interruptionMode: "mixWithOthers" });
     return () => { void Speech.stop(); };
   }, []);
+
+  useEffect(() => {
+    let active = true;
+    if (!remoteSource || !textHash || !sourceKey) {
+      return () => { active = false; };
+    }
+    void Promise.resolve(getCachedAudioUri(textHash)).then((cachedUri) => cachedUri ?? cacheAudioFile(remoteSource, textHash)).then((localUri) => {
+      if (active) setCachedSource({ key: sourceKey, uri: localUri });
+    }).catch(() => undefined);
+    return () => { active = false; };
+  }, [remoteSource, sourceKey, textHash]);
 
   const play = () => {
     void Speech.stop();
