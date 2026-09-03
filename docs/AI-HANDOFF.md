@@ -172,3 +172,20 @@ Cada commit e push deve deixar documentados: objetivo, arquivos alterados, decis
 Não usar `git reset --hard`. Para recuperar um estado, usar rollback por checkpoint. Não adicionar secrets diretamente em arquivos ou commits. Não copiar o schema inteiro do Caderno de Mandarim; extrair somente dados e lógica realmente necessários.
 
 A tela Hoje ainda exibe dados de demonstração em alguns pontos. Antes de apresentar o fluxo como funcional, substituir esses valores por dados do domínio ou estados explícitos de carregamento/indisponibilidade.
+
+
+## Rodada de sincronização e preview — 2026-09-03
+
+- Foi feito pull/fetch do GitHub antes do trabalho.
+- A `main` remota recebeu o commit `9f72273` da outra IA, contendo o primeiro vertical slice funcional.
+- O `todo.md` apresentou conflito durante a integração; os blocos locais e remotos foram mesclados manualmente sem perda de tarefas.
+- O vertical slice integrado inclui trilha inicial, cinco nós, atividades de múltipla escolha, procedures `today`, `learningMap`, `lesson` e `progression`, persistência com fallback em memória, idempotência por `clientEventId`, testes e export estático web.
+- Foi criado o commit `ed0a1d4` na branch `chore/sync-handoff-preview` e enviado ao remote `github`, atualizando o Pull Request existente.
+- O preview mobile foi gerado para `/`, `/map`, `/node/intro` e `/lesson/intro`.
+- O preview revelou contraste insuficiente em textos sobre superfícies `ink`; a correção substituiu `text-surface` por `text-background` em `app/(tabs)/index.tsx` e `app/(tabs)/map.tsx`.
+- Após a correção, TypeScript, lint, testes e build passaram. Os testes exibem fallback esperado porque a tabela `learning_paths` ainda não existe no banco do ambiente.
+- Próxima pendência técnica: aplicar a migração no banco de desenvolvimento/staging e remover o fallback do preview quando o banco estiver disponível.
+
+### Protocolo desta rodada
+
+Sempre fazer pull/fetch e verificar `git status` antes de editar. Ler este handoff e o `todo.md`. Preservar alterações de outras IAs, resolver conflitos manualmente e documentar a integração. Antes de entregar, executar validações, gerar preview, atualizar o backlog, salvar checkpoint e registrar commit/PR.

@@ -197,3 +197,8 @@
 - [ ] Aplicar a migração no banco do ambiente de desenvolvimento/staging
 - [ ] Substituir o fallback de preview por dados reais após configurar o banco
 
+
+## Ajuste encontrado no preview
+
+- [x] Corrigir contraste dos textos em superfícies escuras do fluxo Hoje, Mapa e detalhe do nó
+- [x] Regerar preview após o ajuste de contraste

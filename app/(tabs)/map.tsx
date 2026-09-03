@@ -100,14 +100,14 @@ export default function MapScreen() {
                     <AppCard className="gap-2" tone={isRecommended ? "ink" : "paper"}>
                       <View className="flex-row items-start justify-between gap-3">
                         <View className="flex-1">
-                          <Text className={`text-xs font-semibold uppercase tracking-widest ${isRecommended ? "text-surface" : "text-primary"}`}>
+                          <Text className={`text-xs font-semibold uppercase tracking-widest ${isRecommended ? "text-background" : "text-primary"}`}>
                             {STATUS_LABELS[node.status]}
                           </Text>
                           <Text className={`mt-1 text-lg font-bold ${isRecommended ? "text-background" : "text-foreground"}`}>{node.title}</Text>
                         </View>
                         {isRecommended ? <Text className="text-xs font-semibold text-warning">PRÓXIMO</Text> : null}
                       </View>
-                      <Text className={`text-sm leading-5 ${isRecommended ? "text-surface" : "text-muted"}`}>{node.description}</Text>
+                      <Text className={`text-sm leading-5 ${isRecommended ? "text-background" : "text-muted"}`}>{node.description}</Text>
                       {node.status !== "locked" ? (
                         <Text className={`text-xs font-semibold ${isRecommended ? "text-warning" : "text-primary"}`}>{node.progressPercent}% concluído</Text>
                       ) : (

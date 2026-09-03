@@ -63,16 +63,16 @@ export default function HomeScreen() {
 
           <AppCard className="gap-5" tone="ink">
             <View className="flex-row items-center justify-between">
-              <Text className="text-xs font-semibold uppercase tracking-widest text-surface">CONTINUAR TRILHA</Text>
+              <Text className="text-xs font-semibold uppercase tracking-widest text-background">CONTINUAR TRILHA</Text>
               <Text className="text-sm font-semibold text-warning">+40 XP</Text>
             </View>
             <View>
               <Text className="text-2xl font-bold leading-8 text-background">{recommendedNode.title}</Text>
-              <Text className="mt-2 text-sm leading-5 text-surface">{recommendedNode.description}</Text>
+              <Text className="mt-2 text-sm leading-5 text-background">{recommendedNode.description}</Text>
             </View>
             <View className="gap-2">
               <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-surface">Progresso do nó</Text>
+                <Text className="text-xs text-background">Progresso do nó</Text>
                 <Text className="text-xs font-semibold text-background">{recommendedNode.progressPercent}%</Text>
               </View>
               <ProgressBar value={recommendedNode.progressPercent} className="bg-sand/30" fillClassName="bg-warning" />
