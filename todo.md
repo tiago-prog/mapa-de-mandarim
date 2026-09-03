@@ -90,7 +90,7 @@
 - [x] Testar fluxo completo de aprendizagem de um nó
 - [x] Testar fluxo de consulta no dicionário
 - [x] Testar fluxo de revisão
-- [ ] Testar persistência de progresso
+- [ ] Testar persistência de progresso (bloqueado até existir banco de staging)
 - [ ] Testar estados de erro e reconexão
 - [ ] Validar uso em telas portrait pequenas
 - [ ] Validar acessibilidade básica
@@ -99,7 +99,7 @@
 
 ## Pós-MVP
 
-- [ ] Validar Google OAuth em staging
+- [ ] Validar Google OAuth em staging (depende do ambiente de staging)
 - [ ] Adicionar novas trilhas
 - [ ] Adicionar leitor de textos
 - [ ] Avaliar recursos de IA
@@ -158,8 +158,8 @@
 - [x] Adicionar testes de domínio e integração do fluxo
 - [x] Validar TypeScript, lint, testes e build
 - [x] Validar export estático web
-- [ ] Aplicar a migração no banco do ambiente de desenvolvimento/staging
-- [ ] Substituir o fallback de preview por dados reais após configurar o banco
+- [ ] Aplicar a migração no banco do ambiente de desenvolvimento/staging (bloqueado: ainda não há `DATABASE_URL`)
+- [ ] Substituir o fallback de preview por dados reais após configurar o banco (depende do provisionamento de staging)
 
 ## Etapa 3 — Dicionário e palavras conhecidas
 
@@ -207,4 +207,32 @@
 
 ## Próximo checkpoint
 
-O próximo incremento recomendado é aplicar as migrações no ambiente de desenvolvimento/staging, substituir o fallback de preview por dados reais e validar a persistência do ciclo completo de aprendizagem e revisão.
+O próximo incremento recomendado é provisionar um banco MySQL/TiDB para desenvolvimento/staging. Esta etapa está bloqueada porque não existe `DATABASE_URL` disponível nesta sessão. Depois de obter a conexão, a próxima IA deve executar `pnpm db:push`, iniciar a API com `DATABASE_URL` configurada, verificar as tabelas `srs_cards` e `srs_reviews` e validar o ciclo persistido de aprendizagem e revisão. A URL não deve ser gravada no repositório nem incluída em commits.
+
+## Handoff para a próxima IA
+
+### Bloqueio atual
+
+Não há `DATABASE_URL` configurada nesta sessão, não existe arquivo `.env` no projeto e nenhum banco MySQL/TiDB de desenvolvimento ou staging foi provisionado. Portanto, a migração real e os testes de persistência entre sessões estão deliberadamente pendentes. Não criar uma URL fictícia, não gravar credenciais no repositório e não alterar a arquitetura MySQL/TiDB sem uma decisão explícita.
+
+### Estado funcional já entregue
+
+- [x] Fluxo de aprendizagem com progresso, XP, exposição lexical e fallback em memória.
+- [x] Cartões SRS, histórico, motor determinístico, avaliações e idempotência.
+- [x] Sessão visual da aba Revisar com revelação, áudio, avaliações e resumo.
+- [x] Contagem de revisões vencidas e botão “Revisar agora” na tela Hoje.
+- [x] Ativação automática de cartões quando palavras entram em `learning`.
+- [x] Testes, TypeScript, lint, build e preview local validados.
+
+### Retomada recomendada quando houver banco
+
+1. Disponibilizar `DATABASE_URL` somente no ambiente de execução.
+2. Executar `pnpm db:push` na raiz do projeto.
+3. Iniciar a API com `DATABASE_URL` configurada.
+4. Confirmar as tabelas `srs_cards` e `srs_reviews` e a criação de registros após uma atividade.
+5. Validar persistência do cartão, avaliação, próximo vencimento e histórico após reiniciar a API.
+6. Só então marcar como concluídos os itens de migração, persistência e OAuth em staging.
+
+### Trabalho que pode continuar sem banco
+
+A próxima IA pode avançar em acessibilidade, estados de reconexão, onboarding, tema claro/escuro, importação do dataset lexical, áudio real, sequência diária, domínio por nó, conquistas e área administrativa. O modo de fallback em memória deve continuar sendo usado nos testes locais.
