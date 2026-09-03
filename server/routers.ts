@@ -18,6 +18,7 @@ import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "
 import { audioAssetInputSchema } from "./domain/audio";
 import { generateAndUploadAudio, getAudioAssetPlan } from "./audio-service";
 import { contentImportId, validateContentImport } from "./domain/content-import";
+import { ensureSrsCard, getDueSrsCards, submitSrsRating } from "./srs";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
 const activityType = z.enum(["multiple_choice", "word_order", "context_choice", "fill_blank"]);
@@ -87,6 +88,37 @@ export const appRouter = router({
           throw error;
         });
       }),
+  }),
+
+  review: router({
+    getDue: publicProcedure
+      .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
+      .query(({ ctx, input }) => getDueSrsCards(getUserId(ctx.user?.id), new Date(), input.limit)),
+    activate: publicProcedure
+      .input(z.object({ lexicalEntryId: z.string().min(1).max(64) }))
+      .mutation(({ ctx, input }) => ensureSrsCard(getUserId(ctx.user?.id), input.lexicalEntryId).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "Palavra não encontrada") {
+          throw new TRPCError({ code: "NOT_FOUND", message: error.message });
+        }
+        throw error;
+      })),
+    submitRating: publicProcedure
+      .input(z.object({
+        cardId: z.string().min(1).max(96),
+        rating: z.enum(["forgot", "hard", "easy"]),
+        clientEventId: z.string().min(8).max(96),
+      }))
+      .mutation(({ ctx, input }) => submitSrsRating({
+        userId: getUserId(ctx.user?.id),
+        cardId: input.cardId,
+        rating: input.rating,
+        clientEventId: input.clientEventId,
+      }).catch((error: unknown) => {
+        if (error instanceof Error && error.message === "Cartão SRS não encontrado") {
+          throw new TRPCError({ code: "NOT_FOUND", message: error.message });
+        }
+        throw error;
+      })),
   }),
 
   adminContent: router({

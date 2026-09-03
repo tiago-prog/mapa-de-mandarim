@@ -30,8 +30,8 @@ O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática
 | Azure Speech | Serviço server-side implementado, dependente de configuração |
 | Importação JSON | Contrato, validação e gravação de rascunhos implementados |
 | Área administrativa visual | Ainda não implementada |
-| Flashcards | Ainda não implementados |
-| SRS | Ainda não implementado |
+| Flashcards | Modelo de cartão e agenda inicial implementados; interface ainda pendente |
+| SRS | Schema, motor determinístico e API inicial implementados; sessão visual ainda pendente |
 
 ## Arquitetura de conteúdo
 
@@ -104,18 +104,18 @@ A operação é idempotente, deduplica as entradas do nó e preserva uma palavra
 
 A exposição **não marca automaticamente uma palavra como `known`**. Exposição e domínio continuam sendo conceitos diferentes.
 
-## SRS ainda pendente
+## SRS em implementação
 
-Ainda não existem:
+A primeira camada do SRS já está disponível:
 
-- Tabela de cartões.
-- Agenda `dueAt` ou `nextReviewAt`.
-- Histórico de revisões.
-- Sistema de caixas.
-- Intervalos de revisão.
-- Avaliações como “errei”, “difícil”, “bom” e “fácil”.
-- Tela Revisar funcional.
-- Criação ou ativação automática de cartões.
+- Tabelas `srs_cards` e `srs_reviews`, com a migração `0006_srs_cards_reviews.sql`.
+- Agenda `dueAt`, intervalo, caixa, fator de facilidade, contagem de revisões e lapsos.
+- Motor puro e determinístico para as avaliações `forgot`, `hard` e `easy`.
+- Criação idempotente de cartões por usuário e entrada lexical.
+- Consulta de cartões vencidos e submissão transacional de avaliações pela API.
+- Histórico protegido por `clientEventId` para evitar avaliações duplicadas.
+
+Ainda faltam a ativação automática de cartões a partir do fluxo completo de aprendizagem, a sessão visual da aba Revisar, a revelação progressiva da resposta e a exibição de revisões pendentes na tela Hoje.
 
 A arquitetura recomendada é manter o SRS separado do vocabulário:
 
@@ -156,6 +156,16 @@ srs_reviews
 ├── previousDueAt
 ├── nextDueAt
 └── reviewedAt
+```
+
+O motor implementado usa cinco caixas com intervalos iniciais progressivos:
+
+```text
+Caixa 1 → vencimento imediato ou reinício após esquecimento
+Caixa 2 → 1 dia
+Caixa 3 → 3 dias
+Caixa 4 → 7 dias
+Caixa 5 → 14 dias
 ```
 
 Um MVP simples pode começar com cinco caixas:
@@ -238,21 +248,7 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Criar o modelo SRS
-
-Adicionar migrações e tipos para `srs_cards` e `srs_reviews`. O SRS deve referenciar `lexicalEntryId`, nunca duplicar Hanzi, pinyin ou significados.
-
-### 2. Criar o motor SRS
-
-Implementar uma política simples, determinística e testável para:
-
-```text
-rating → próxima caixa → próximo intervalo → dueAt
-```
-
-A função deve ser pura antes de ser ligada ao banco.
-
-### 3. Criar a aba Revisar
+### 1. Completar a aba Revisar
 
 A tela deve:
 
@@ -264,7 +260,7 @@ A tela deve:
 - Persistir o histórico.
 - Atualizar o próximo vencimento.
 
-### 4. Completar a área administrativa
+### 2. Completar a área administrativa
 
 Depois do ciclo de vocabulário e SRS estar estável, criar:
 
@@ -290,7 +286,7 @@ O estado validado antes deste registo foi:
 
 ```text
 TypeScript: OK
-Testes: 21 passaram
+Testes: 27 passaram
 Lint: OK
 ```
 

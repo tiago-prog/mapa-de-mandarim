@@ -176,6 +176,48 @@ export const userWordStates = mysqlTable(
   }),
 );
 
+export const srsCards = mysqlTable(
+  "srs_cards",
+  {
+    id: varchar("id", { length: 96 }).primaryKey(),
+    userId: int("userId").notNull(),
+    lexicalEntryId: varchar("lexicalEntryId", { length: 64 }).notNull(),
+    box: int("box").notNull().default(1),
+    dueAt: timestamp("dueAt").notNull(),
+    intervalDays: int("intervalDays").notNull().default(0),
+    easeFactor: varchar("easeFactor", { length: 16 }).notNull().default("2.5"),
+    reviewCount: int("reviewCount").notNull().default(0),
+    lapseCount: int("lapseCount").notNull().default(0),
+    lastReviewedAt: timestamp("lastReviewedAt"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    userLexicalEntryIdx: uniqueIndex("srs_cards_user_lexical_entry_idx").on(table.userId, table.lexicalEntryId),
+    dueIdx: index("srs_cards_due_idx").on(table.userId, table.dueAt),
+  }),
+);
+
+export const srsReviews = mysqlTable(
+  "srs_reviews",
+  {
+    id: varchar("id", { length: 96 }).primaryKey(),
+    clientEventId: varchar("clientEventId", { length: 96 }).notNull().unique(),
+    userId: int("userId").notNull(),
+    cardId: varchar("cardId", { length: 96 }).notNull(),
+    rating: mysqlEnum("rating", ["forgot", "hard", "easy"]).notNull(),
+    previousBox: int("previousBox").notNull(),
+    nextBox: int("nextBox").notNull(),
+    previousDueAt: timestamp("previousDueAt").notNull(),
+    nextDueAt: timestamp("nextDueAt").notNull(),
+    reviewedAt: timestamp("reviewedAt").defaultNow().notNull(),
+  },
+  (table) => ({
+    userReviewedIdx: index("srs_reviews_user_reviewed_idx").on(table.userId, table.reviewedAt),
+    cardReviewedIdx: index("srs_reviews_card_reviewed_idx").on(table.cardId, table.reviewedAt),
+  }),
+);
+
 export const userNodeProgress = mysqlTable(
   "user_node_progress",
   {
@@ -222,6 +264,8 @@ export type LearningNodeStep = typeof learningNodeSteps.$inferSelect;
 export type LessonActivity = typeof lessonActivities.$inferSelect;
 export type AudioAsset = typeof audioAssets.$inferSelect;
 export type UserWordState = typeof userWordStates.$inferSelect;
+export type SrsCard = typeof srsCards.$inferSelect;
+export type SrsReview = typeof srsReviews.$inferSelect;
 export type UserNodeProgress = typeof userNodeProgress.$inferSelect;
 export type UserProgress = typeof userProgress.$inferSelect;
 export type ActivityCompletion = typeof activityCompletions.$inferSelect;

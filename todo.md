@@ -66,12 +66,12 @@
 
 ## Etapa 7 — Flashcards e SRS
 
-- [ ] Criar modelo de cartão associado a palavra e nó
-- [ ] Importar e adaptar lógica de repetição espaçada
+- [x] Criar modelo de cartão associado à entrada lexical, separado do nó
+- [x] Implementar política determinística de repetição espaçada
 - [ ] Criar sessão de revisão
 - [ ] Implementar revelação de resposta
-- [ ] Implementar avaliações esqueci, difícil e fácil
-- [ ] Registrar eventos de revisão
+- [x] Implementar avaliações esqueci, difícil e fácil no motor e na API
+- [x] Registrar eventos de revisão com idempotência por `clientEventId`
 - [ ] Mostrar revisões pendentes na tela Hoje
 
 ## Etapa 8 — Gamificação e progresso
@@ -202,9 +202,9 @@
 - [x] Persistir a exposição no banco dentro da transação da atividade
 - [x] Compartilhar o estado lexical no fallback em memória do preview
 - [x] Cobrir a política com testes unitários e de integração
-- [ ] Criar modelo de cartões SRS e histórico de revisões
+- [x] Criar modelo de cartões SRS e histórico de revisões
 - [ ] Criar a aba Revisar funcional
 
 ## Próximo checkpoint
 
-O próximo incremento recomendado é implementar `srs_cards` e `srs_reviews`, mantendo o vocabulário editorial, o estado pessoal e a agenda de revisão como camadas separadas.
+O próximo incremento recomendado é implementar a sessão visual da aba Revisar, com revelação progressiva, criação/ativação automática de cartões e integração das revisões pendentes na tela Hoje.

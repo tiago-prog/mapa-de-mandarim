@@ -99,4 +99,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-A próxima fase é implementar o modelo SRS separado do vocabulário pessoal, com cartões, histórico de revisões, agenda de vencimento e uma primeira sessão funcional na aba Revisar.
+O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A próxima fase é construir a sessão visual da aba Revisar e integrar as revisões pendentes à tela Hoje.

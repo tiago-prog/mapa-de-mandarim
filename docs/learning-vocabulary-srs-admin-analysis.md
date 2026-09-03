@@ -6,7 +6,7 @@ O projeto deve tratar **conteúdo pedagógico**, **vocabulário pessoal** e **re
 
 Esta separação também define a futura área administrativa. O administrador cria nós, missões, etapas, atividades e associações lexicais. O aluno percorre esse conteúdo. Ao concluir ou praticar uma lição, o backend materializa as palavras no vocabulário pessoal do aluno. Mais tarde, o SRS seleciona as palavras elegíveis e cria ou atualiza os cartões de revisão.
 
-A base atual já possui uma boa parte do conteúdo necessário para o primeiro vertical slice. A integração entre atividade e vocabulário pessoal foi concluída como uma operação de domínio idempotente, executada junto da confirmação da atividade quando há banco e compartilhada com o fallback em memória. A próxima evolução deve construir o SRS sobre essa base antes de completar a aba de revisão.
+A base atual já possui o primeiro vertical slice e a camada inicial do SRS. A integração entre atividade e vocabulário pessoal é idempotente, e o backend agora possui cartões, histórico, agenda de vencimento, motor de cinco caixas e endpoints para cartões vencidos e avaliações. A próxima evolução é completar a experiência visual da aba Revisar.
 
 ## 1. Estado atual do projeto
 
@@ -14,7 +14,7 @@ O Mapa de Mandarim já possui uma trilha inicial com cinco nós, sete etapas por
 
 O dicionário global está representado por `lexicalEntries`. A relação entre um nó e as palavras que ele ensina está representada por `nodeLexicalEntries`. A relação entre um usuário e uma palavra está representada por `userWordStates`, que atualmente possui os estados `new`, `known` e `learning`.[2]
 
-A alteração explícita de `userWordStates` continua disponível na Biblioteca, mas a prática de uma atividade agora também cria ou atualiza automaticamente as palavras vinculadas ao nó: entradas novas passam a `learning`, `lastSeenAt` é atualizado e o estado `known` é preservado. Ainda não existe um cartão SRS separado, uma agenda de revisão ou um histórico de avaliações no Mapa de Mandarim. A aba Revisar permanece como ponto de integração futuro.[3]
+A alteração explícita de `userWordStates` continua disponível na Biblioteca, e a prática de uma atividade cria ou atualiza automaticamente as palavras vinculadas ao nó: entradas novas passam a `learning`, `lastSeenAt` é atualizado e o estado `known` é preservado. O SRS agora existe como camada separada, com `srs_cards`, `srs_reviews`, agenda de vencimento e histórico idempotente; a aba Revisar permanece como principal ponto de integração visual.[3]
 
 O `caderno-de-mandarim` fornece uma referência funcional relevante. Nesse projeto, a palavra pessoal nasce na tabela `words` com `box = 1` e `nextReviewAt` igual ao momento de criação. As avaliações posteriores atualizam a caixa, a próxima revisão e o histórico em `reviews`. O motor utiliza as avaliações `forgot`, `hard` e `easy` para recalcular o intervalo.[4]
 
@@ -293,7 +293,7 @@ A integração de exposição lexical foi concluída: uma função de domínio i
 
 ### Fase 2 — SRS independente
 
-Criar `reviewCards` e `reviewEvents`. Adaptar o motor de caixas e intervalos do Caderno para funções puras no novo domínio. Criar a fila de cartões elegíveis. Testar avaliações e idempotência.
+A primeira camada foi concluída com `srs_cards` e `srs_reviews`, motor puro de caixas e intervalos, fila de cartões vencidos, ativação idempotente e submissão transacional de avaliações. Permanecem a sessão visual, a revelação progressiva, a ativação automática a partir do percurso de aprendizagem e a integração da fila na tela Hoje.
 
 ### Fase 3 — Aba Revisar
 
