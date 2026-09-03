@@ -1,0 +1,23 @@
+CREATE TABLE `audio_assets` (
+	`id` varchar(64) NOT NULL,
+	`contentType` enum('lexical_entry','example_sentence','dialogue_line','lesson_activity','mission_step','listening_prompt') NOT NULL,
+	`contentId` varchar(80) NOT NULL,
+	`lexicalEntryId` varchar(64),
+	`textHash` varchar(32) NOT NULL,
+	`language` varchar(16) NOT NULL DEFAULT 'zh-CN',
+	`voice` varchar(128) NOT NULL,
+	`rate` varchar(16) NOT NULL DEFAULT '0.85',
+	`format` varchar(64) NOT NULL DEFAULT 'audio-24khz-48kbitrate-mono-mp3',
+	`generatorVersion` varchar(32) NOT NULL DEFAULT 'v1',
+	`storageKey` varchar(512),
+	`publicUrl` varchar(1024),
+	`durationMs` int,
+	`fileSizeBytes` int,
+	`status` enum('pending','processing','ready','failed','stale') NOT NULL DEFAULT 'pending',
+	`errorMessage` text,
+	`createdAt` timestamp NOT NULL DEFAULT (now()),
+	`updatedAt` timestamp NOT NULL DEFAULT (now()) ON UPDATE CURRENT_TIMESTAMP,
+	CONSTRAINT `audio_assets_id` PRIMARY KEY(`id`),
+	CONSTRAINT `audio_assets_textHash_unique` UNIQUE(`textHash`),
+	CONSTRAINT `audio_assets_content_idx` UNIQUE(`contentType`,`contentId`)
+);

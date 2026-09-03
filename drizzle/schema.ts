@@ -120,6 +120,33 @@ export const lessonActivities = mysqlTable(
   }),
 );
 
+export const audioAssets = mysqlTable(
+  "audio_assets",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    contentType: mysqlEnum("contentType", ["lexical_entry", "example_sentence", "dialogue_line", "lesson_activity", "mission_step", "listening_prompt"]).notNull(),
+    contentId: varchar("contentId", { length: 80 }).notNull(),
+    lexicalEntryId: varchar("lexicalEntryId", { length: 64 }),
+    textHash: varchar("textHash", { length: 32 }).notNull().unique(),
+    language: varchar("language", { length: 16 }).notNull().default("zh-CN"),
+    voice: varchar("voice", { length: 128 }).notNull(),
+    rate: varchar("rate", { length: 16 }).notNull().default("0.85"),
+    format: varchar("format", { length: 64 }).notNull().default("audio-24khz-48kbitrate-mono-mp3"),
+    generatorVersion: varchar("generatorVersion", { length: 32 }).notNull().default("v1"),
+    storageKey: varchar("storageKey", { length: 512 }),
+    publicUrl: varchar("publicUrl", { length: 1024 }),
+    durationMs: int("durationMs"),
+    fileSizeBytes: int("fileSizeBytes"),
+    status: mysqlEnum("status", ["pending", "processing", "ready", "failed", "stale"]).notNull().default("pending"),
+    errorMessage: text("errorMessage"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+  },
+  (table) => ({
+    contentIdx: uniqueIndex("audio_assets_content_idx").on(table.contentType, table.contentId),
+  }),
+);
+
 export const userWordStates = mysqlTable(
   "user_word_states",
   {
@@ -177,6 +204,7 @@ export type LearningNode = typeof learningNodes.$inferSelect;
 export type LexicalEntry = typeof lexicalEntries.$inferSelect;
 export type LearningNodeStep = typeof learningNodeSteps.$inferSelect;
 export type LessonActivity = typeof lessonActivities.$inferSelect;
+export type AudioAsset = typeof audioAssets.$inferSelect;
 export type UserWordState = typeof userWordStates.$inferSelect;
 export type UserNodeProgress = typeof userNodeProgress.$inferSelect;
 export type UserProgress = typeof userProgress.$inferSelect;

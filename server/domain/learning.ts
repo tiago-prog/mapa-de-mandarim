@@ -1,3 +1,5 @@
+import type { AudioSpec } from "./audio";
+
 export type LearningNodeStatus = "locked" | "available" | "in_progress" | "completed";
 
 export type LessonStepKind =
@@ -35,6 +37,7 @@ export type LexicalEntrySeed = {
   meaningPtBr: string;
   exampleHanzi: string;
   examplePtBr: string;
+  audio?: AudioSpec;
 };
 
 type LessonContent =
@@ -47,7 +50,7 @@ type LessonContent =
   | {
       kind: "context";
       instruction: string;
-      lines: Array<{ speaker: string; hanzi: string; pinyin: string; translation: string }>;
+      lines: Array<{ speaker: string; hanzi: string; pinyin: string; translation: string; audio?: AudioSpec }>;
     }
   | {
       kind: "vocabulary";
@@ -57,7 +60,7 @@ type LessonContent =
   | {
       kind: "grammar";
       instruction: string;
-      patterns: Array<{ pattern: string; explanation: string; exampleHanzi: string; examplePtBr: string }>;
+      patterns: Array<{ pattern: string; explanation: string; exampleHanzi: string; examplePtBr: string; audio?: AudioSpec }>;
     }
   | {
       kind: "practice" | "application";
@@ -101,6 +104,7 @@ export type LessonActivitySeed = {
   expectedAnswer: string | null;
   feedbackCorrect: string;
   feedbackIncorrect: string;
+  audio?: AudioSpec;
 };
 
 export type PublicLessonActivity = Omit<LessonActivitySeed, "correctOptionId" | "correctOrder" | "expectedAnswer">;
