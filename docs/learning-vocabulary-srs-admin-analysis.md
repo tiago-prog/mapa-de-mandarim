@@ -346,3 +346,76 @@ Essa arquitetura mantém as responsabilidades claras e permite que o projeto cre
 [3]: ../app/(tabs)/review.tsx "Tela atual de Revisar do Mapa de Mandarim"
 
 [4]: ../../caderno-de-mandarim/server/learningEngine.ts "Motor SRS e cálculo de caixas do Caderno de Mandarim"
+
+
+## 14. Estudo comparativo do SRS do Caderno de Mandarim
+
+A análise do `caderno-de-mandarim` mostra que o seu SRS é deliberadamente simples e funcional. A palavra pessoal já nasce com `box = 1` e `nextReviewAt = agora`. A revisão consulta palavras cujo horário chegou, mostra o cartão e, após a avaliação, atualiza a caixa, a data da próxima revisão e o histórico. O motor puro calcula um intervalo atual, aplica a avaliação e converte o intervalo resultante numa caixa de 1 a 5.[5]
+
+Esse comportamento é adequado como ponto de partida, mas o modelo de dados do Caderno combina numa mesma entidade a palavra pessoal e a agenda SRS. No Mapa de Mandarim, essa combinação seria limitadora porque uma entrada lexical global pode ser usada por muitos alunos, nós e missões, enquanto o estado pedagógico e a agenda pertencem individualmente a cada usuário.
+
+### O que deve ser reutilizado
+
+O Mapa de Mandarim deve reutilizar as ideias centrais do Caderno: funções puras para calcular a próxima revisão, avaliações pequenas e compreensíveis, caixas progressivas, limite máximo de intervalo, histórico de eventos e transações atômicas ao registrar uma revisão. O uso de `forgot`, `hard` e `easy` também é adequado para a primeira versão porque é fácil de entender e não exige que o aluno conheça detalhes do algoritmo.
+
+A política inicial de intervalos pode ser equivalente à do Caderno, desde que seja encapsulada num módulo próprio do Mapa de Mandarim. Isso permite ajustar os números depois sem alterar o banco, as telas ou as APIs.
+
+### O que deve ser remodelado
+
+O Mapa de Mandarim deve criar primeiro o estado pessoal da palavra e só depois criar o cartão SRS. O cartão deve referenciar `userId` e `lexicalEntryId`, e não substituir `userWordStates`. Assim, uma palavra apresentada numa missão pode entrar no vocabulário pessoal como `learning`, mesmo que ainda não tenha sido revisada.
+
+A criação do cartão deve ser idempotente. Se a palavra já tiver um cartão, uma nova lição não pode reiniciar a caixa nem apagar a próxima revisão. A lição deve apenas atualizar evidências de exposição ou uso. Se ainda não houver cartão e a política determinar que a palavra está elegível, o sistema cria o cartão na caixa inicial.
+
+A avaliação do SRS também não deve sobrescrever uma decisão explícita do usuário. Se o aluno marcou uma palavra como `known`, uma resposta difícil pode reduzir a agenda do cartão, mas não deve automaticamente transformar o estado visível em `learning` sem uma regra de produto deliberada.
+
+### O que pode ser melhorado
+
+O Caderno possui uma agenda centrada em palavras capturadas pelo próprio usuário. O Mapa de Mandarim precisa acrescentar contexto pedagógico. Cada cartão deve saber em que nó ou missão a palavra foi introduzida, quais sentidos foram ensinados e qual exemplo deve ser exibido. A mesma entrada lexical pode ter contextos diferentes em nós distintos, portanto o cartão deve apontar para a entrada global e, quando necessário, para uma relação contextual da lição.
+
+A fila de revisão deve distinguir cartões novos, atrasados e devidos. Uma política simples pode reservar uma parte da sessão para cartões atrasados, outra para cartões de caixa inicial e outra para cartões novos. O algoritmo de seleção deve ser independente do cálculo de intervalo, tal como a seleção de prática adicional do Caderno já é separada do motor principal.
+
+O Mapa também deve registrar o motivo pelo qual uma palavra entrou no vocabulário: conclusão da etapa de vocabulário, atividade correta, missão, consulta manual ou importação. Essa proveniência será útil para a área administrativa, para métricas pedagógicas e para explicar ao aluno por que uma palavra está sendo revisada.
+
+### Decisão recomendada
+
+A decisão técnica recomendada é **adaptar e melhorar**, não clonar. O motor de agenda do Caderno pode ser portado conceitualmente para `server/domain/spaced-repetition.ts`, mas as tabelas, as transições de estado e as filas devem respeitar o modelo do Mapa de Mandarim.
+
+```text
+Entrada lexical global
+        ↓
+Estado pessoal criado pela lição
+        ↓
+Cartão SRS criado quando elegível
+        ↓
+Fila de revisão
+        ↓
+Avaliação do usuário
+        ↓
+Atualização do cartão + evento histórico
+        ↓
+Atualização controlada do estado pedagógico
+```
+
+A implementação não deve começar pela interface do flashcard. A ordem correta é criar e testar primeiro as transições de domínio, depois persistir estados e cartões, depois expor a fila pela API e só então construir a tela Revisar.
+
+### Matriz de decisão
+
+| Elemento | Caderno de Mandarim | Mapa de Mandarim recomendado | Decisão |
+|---|---|---|---|
+| Palavra pessoal | Misturada com a entidade revisável | Separada da entrada lexical global | Remodelar |
+| Caixa | 1 a 5 | 1 a 5 inicialmente | Reutilizar |
+| Avaliações | Esqueci, difícil, fácil | Esqueci, difícil, fácil | Reutilizar |
+| Intervalos | Regra simples baseada em dias | Regra equivalente encapsulada | Adaptar |
+| Histórico | Tabela de revisões | Eventos imutáveis com idempotência | Melhorar |
+| Contexto da lição | Limitado à origem da captura | Nó, missão, atividade e sentido | Melhorar |
+| Criação de item | Palavra nasce com agenda | Vocabulário nasce antes do cartão | Remodelar |
+| Fila | Revisões devidas e prática adicional | Novos, devidos, atrasados e reforço contextual | Melhorar |
+| Estados pedagógicos | Implícitos na palavra e caixa | `new`, `learning`, `known` separados da caixa | Remodelar |
+
+### Critério para substituir o algoritmo no futuro
+
+Não há necessidade de adotar imediatamente um algoritmo mais complexo, como FSRS. O motor simples do Caderno é suficiente para validar a experiência e recolher dados. A substituição só deve ser considerada quando houver volume real de avaliações e evidência de que os intervalos atuais não representam bem a retenção dos alunos. Como os eventos serão armazenados de forma imutável, uma evolução futura poderá recalcular agendas sem perder o histórico.
+
+## Referências adicionais
+
+[5]: ../../caderno-de-mandarim/server/extraReview.ts "Seleção de reforço e agenda de revisão adicional do Caderno de Mandarim"
