@@ -4,6 +4,7 @@ import { lexicalEntries, userWordStates } from "../drizzle/schema";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
 import { getDb } from "./db";
 import { getMemoryWordStates } from "./word-state-memory";
+import { isMemoryFallbackEnabled } from "./runtime-mode";
 
 export type WordStatus = "new" | "known" | "learning";
 
@@ -71,6 +72,7 @@ export async function searchDictionary(userId: number, query: string, limit: num
       const stateByEntryId = new Map(states.map((state) => [state.lexicalEntryId, state]));
       return entries.map((entry) => toDictionaryEntry(entry, stateByEntryId.get(entry.id)));
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Dictionary] Falling back to in-memory search:", error);
     }
   }
@@ -90,6 +92,7 @@ export async function getDictionaryEntry(userId: number, entryId: string): Promi
         .limit(1);
       return toDictionaryEntry(entries[0], states[0]);
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Dictionary] Falling back to in-memory entry:", error);
     }
   }
@@ -114,6 +117,7 @@ export async function setDictionaryEntryStatus(
         .onDuplicateKeyUpdate({ set: { status, lastSeenAt, updatedAt: lastSeenAt } });
       return { ...entry, status, lastSeenAt };
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Dictionary] Falling back to in-memory status:", error);
     }
   }

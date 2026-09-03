@@ -202,7 +202,7 @@ export const srsReviews = mysqlTable(
   "srs_reviews",
   {
     id: varchar("id", { length: 96 }).primaryKey(),
-    clientEventId: varchar("clientEventId", { length: 96 }).notNull().unique(),
+    clientEventId: varchar("clientEventId", { length: 96 }).notNull(),
     userId: int("userId").notNull(),
     cardId: varchar("cardId", { length: 96 }).notNull(),
     rating: mysqlEnum("rating", ["forgot", "hard", "easy"]).notNull(),
@@ -213,6 +213,7 @@ export const srsReviews = mysqlTable(
     reviewedAt: timestamp("reviewedAt").defaultNow().notNull(),
   },
   (table) => ({
+    userEventIdx: uniqueIndex("srs_reviews_user_event_idx").on(table.userId, table.clientEventId),
     userReviewedIdx: index("srs_reviews_user_reviewed_idx").on(table.userId, table.reviewedAt),
     cardReviewedIdx: index("srs_reviews_card_reviewed_idx").on(table.cardId, table.reviewedAt),
   }),

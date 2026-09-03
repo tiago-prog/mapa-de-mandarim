@@ -104,18 +104,22 @@ A operação é idempotente, deduplica as entradas do nó e preserva uma palavra
 
 A exposição **não marca automaticamente uma palavra como `known`**. Exposição e domínio continuam sendo conceitos diferentes.
 
-## SRS em implementação
+## SRS implementado e endurecido
 
-A primeira camada do SRS já está disponível:
+O núcleo SRS está disponível e integrado ao percurso de aprendizagem:
 
-- Tabelas `srs_cards` e `srs_reviews`, com a migração `0006_srs_cards_reviews.sql`.
+- Tabelas `srs_cards` e `srs_reviews`, com migrações `0006_srs_cards_reviews.sql` e `0008_srs_review_user_event_scope.sql`.
 - Agenda `dueAt`, intervalo, caixa, fator de facilidade, contagem de revisões e lapsos.
 - Motor puro e determinístico para as avaliações `forgot`, `hard` e `easy`.
 - Criação idempotente de cartões por usuário e entrada lexical.
-- Consulta de cartões vencidos e submissão transacional de avaliações pela API.
-- Histórico protegido por `clientEventId` para evitar avaliações duplicadas.
+- Consulta de cartões vencidos, ativação automática de palavras `learning` e submissão transacional de avaliações pela API.
+- Histórico idempotente por `(userId, clientEventId)`, incluindo tratamento de duplicate key em avaliações concorrentes.
+- Rotas pessoais de Today, lição, vocabulário, progresso e revisão ligadas a `personalProcedure`.
+- Fallback em memória restrito ao preview sem banco; ambientes persistentes propagam falhas de conexão e consulta.
+- Journal e snapshots Drizzle reconciliados para as migrações 0000–0008.
+- Runner idempotente `pnpm db:migrate`, separado de `pnpm db:generate`.
 
-Ainda faltam a integração das revisões pendentes na tela Hoje e a ativação automática de cartões a partir de todo o percurso de aprendizagem. A sessão visual da aba Revisar já está disponível com revelação, áudio e avaliações.
+A sessão visual da aba Revisar já está disponível com revelação, áudio, avaliações, estados vazio/erro/loading e resumo de sessão. O próximo trabalho deve validar o ciclo persistido em MariaDB/CI e tornar a sincronização do cliente resiliente a reconexão.
 
 A arquitetura recomendada é manter o SRS separado do vocabulário:
 
@@ -248,25 +252,22 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Persistência real e staging
+### 1. Validar persistência em ambiente real
 
 A próxima camada deve:
 
-- Aplicar as migrações no banco do ambiente de desenvolvimento/staging.
-- Substituir o fallback de preview por dados reais após configurar o banco.
-- Validar persistência do ciclo completo de aprendizagem e revisão.
-- Testar estados de erro, reconexão e primeiro acesso em ambiente configurado.
+- Configurar um banco dedicado de desenvolvimento/staging e executar `pnpm db:migrate`.
+- Rodar `RUN_DATABASE_TESTS=1 pnpm test server/srs.persistence.test.ts` com uma base descartável.
+- Confirmar replay idempotente, duas avaliações simultâneas, reinício da API e isolamento entre utilizadores.
+- Instrumentar erros de banco e observar reconexão antes de publicar.
 
-### 2. Completar a área administrativa
+### 2. Resiliência do cliente
 
-Depois do ciclo de vocabulário e SRS estar estável, criar:
+Depois da validação persistente, criar uma fila pequena de eventos com `clientEventId`, reprocessamento após reconexão, invalidação segura de cache e feedback de erro na tela Revisar.
 
-- Importador JSON visual.
-- Editor de palavras.
-- Editor de nós e missões.
-- Estado da geração de áudio.
-- Pré-visualização.
-- Validação antes da publicação.
+### 3. Produto e conteúdo
+
+Com o ciclo persistente estável, avançar para onboarding, acessibilidade, tema claro/escuro, dataset lexical versionado, áudio real e central administrativa visual para importar, revisar e publicar conteúdo.
 
 ## Comandos de validação
 
@@ -283,7 +284,7 @@ O estado validado antes deste registo foi:
 
 ```text
 TypeScript: OK
-Testes: 27 passaram
+Testes: 29 passaram; 1 suíte persistente fica marcada como skip sem banco
 Lint: OK
 ```
 

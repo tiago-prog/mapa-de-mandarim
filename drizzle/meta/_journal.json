@@ -29,6 +29,41 @@
       "when": 1788410120245,
       "tag": "0003_tidy_groot",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1788476266540,
+      "tag": "0004_audio_assets",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "5",
+      "when": 1788476349340,
+      "tag": "0005_content_imports",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1788476351162,
+      "tag": "0006_srs_cards_reviews",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1788476353034,
+      "tag": "0007_lesson_activity_step_order",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1788476354839,
+      "tag": "0008_srs_review_user_event_scope",
+      "breakpoints": true
     }
   ]
 }

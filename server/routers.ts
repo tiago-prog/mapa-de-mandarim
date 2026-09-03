@@ -4,7 +4,7 @@ import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
-import { adminProcedure, publicProcedure, router } from "./_core/trpc";
+import { adminProcedure, personalProcedure, publicProcedure, router } from "./_core/trpc";
 import {
   getLearningMapData,
   getLearningNodeData,
@@ -35,7 +35,7 @@ export const appRouter = router({
   }),
 
   today: router({
-    get: publicProcedure.query(async ({ ctx }) => {
+    get: personalProcedure.query(async ({ ctx }) => {
       const userId = getUserId(ctx.user?.id);
       const [map, reviewDueCount] = await Promise.all([getLearningMapData(userId), getDueSrsCount(userId)]);
       return { ...map, reviewDueCount };
@@ -43,8 +43,8 @@ export const appRouter = router({
   }),
 
   learningMap: router({
-    get: publicProcedure.query(({ ctx }) => getLearningMapData(getUserId(ctx.user?.id))),
-    getNode: publicProcedure
+    get: personalProcedure.query(({ ctx }) => getLearningMapData(getUserId(ctx.user?.id))),
+    getNode: personalProcedure
       .input(z.object({ nodeId: z.string().min(1).max(64) }))
       .query(({ ctx, input }) => {
         return getLearningNodeData(getUserId(ctx.user?.id), input.nodeId).then((node) => {
@@ -55,7 +55,7 @@ export const appRouter = router({
   }),
 
   lesson: router({
-    get: publicProcedure
+    get: personalProcedure
       .input(
         z.object({
           nodeId: z.string().min(1).max(64),
@@ -69,7 +69,7 @@ export const appRouter = router({
           return lesson;
         });
       }),
-    submitActivity: publicProcedure
+    submitActivity: personalProcedure
       .input(
         z.object({
           nodeId: z.string().min(1).max(64),
@@ -95,10 +95,10 @@ export const appRouter = router({
   }),
 
   review: router({
-    getDue: publicProcedure
+    getDue: personalProcedure
       .input(z.object({ limit: z.number().int().min(1).max(50).default(20) }))
       .query(({ ctx, input }) => getDueSrsCards(getUserId(ctx.user?.id), new Date(), input.limit)),
-    activate: publicProcedure
+    activate: personalProcedure
       .input(z.object({ lexicalEntryId: z.string().min(1).max(64) }))
       .mutation(({ ctx, input }) => ensureSrsCard(getUserId(ctx.user?.id), input.lexicalEntryId).catch((error: unknown) => {
         if (error instanceof Error && error.message === "Palavra não encontrada") {
@@ -106,7 +106,7 @@ export const appRouter = router({
         }
         throw error;
       })),
-    submitRating: publicProcedure
+    submitRating: personalProcedure
       .input(z.object({
         cardId: z.string().min(1).max(96),
         rating: z.enum(["forgot", "hard", "easy"]),
@@ -173,29 +173,29 @@ export const appRouter = router({
   }),
 
   progression: router({
-    getSummary: publicProcedure.query(async ({ ctx }) => {
+    getSummary: personalProcedure.query(async ({ ctx }) => {
       const map = await getLearningMapData(getUserId(ctx.user?.id));
       return map.userProgress;
     }),
   }),
 
   dictionary: router({
-    search: publicProcedure
+    search: personalProcedure
       .input(z.object({ query: z.string().max(80).default(""), limit: z.number().int().min(1).max(50).default(20) }))
       .query(({ ctx, input }) => searchDictionary(getUserId(ctx.user?.id), input.query, input.limit)),
-    get: publicProcedure
+    get: personalProcedure
       .input(z.object({ entryId: z.string().min(1).max(64) }))
       .query(({ ctx, input }) => getDictionaryEntry(getUserId(ctx.user?.id), input.entryId).then((entry) => {
         if (!entry) throw new TRPCError({ code: "NOT_FOUND", message: "Palavra não encontrada" });
         return entry;
       })),
-    myWords: publicProcedure
+    myWords: personalProcedure
       .input(z.object({ status: z.enum(["known", "learning"]).optional() }))
       .query(async ({ ctx, input }) => {
         const entries = await searchDictionary(getUserId(ctx.user?.id), "", 50);
         return input.status ? entries.filter((entry) => entry.status === input.status) : entries.filter((entry) => entry.status !== "new");
       }),
-    setStatus: publicProcedure
+    setStatus: personalProcedure
       .input(z.object({ entryId: z.string().min(1).max(64), status: z.enum(["new", "known", "learning"]) }))
       .mutation(({ ctx, input }) => setDictionaryEntryStatus(getUserId(ctx.user?.id), input.entryId, input.status).catch((error: unknown) => {
         if (error instanceof Error && error.message === "Palavra não encontrada") {

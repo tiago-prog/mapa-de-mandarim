@@ -50,7 +50,7 @@ O script é destinado ao **PowerShell nativo do Windows**. Usuários que executa
 
 ## Execução da API
 
-Depois de instalar o banco, inicie a API com a variável disponível no ambiente. O instalador cria `.env.local`, que é ignorado pelo Git; a forma exata de carregar o arquivo depende do shell e do comando de desenvolvimento do projeto.
+Depois de instalar o banco, inicie a API com a variável disponível no ambiente. O instalador cria `.env.local`, que é ignorado pelo Git; a forma exata de carregar o arquivo depende do shell e do comando de desenvolvimento do projeto. Com `DATABASE_URL` configurada, as rotas pessoais exigem uma sessão autenticada e o backend não usa fallback em memória quando está em produção. O modo pode ser explicitado com `MAPA_RUNTIME_MODE=persistent` ou `MAPA_RUNTIME_MODE=preview`.
 
 No Bash:
 
@@ -76,9 +76,9 @@ A URL real não deve ser gravada no repositório, na documentação ou em commit
 
 ## Migrações
 
-Os instaladores aplicam todos os arquivos `drizzle/*.sql` em ordem lexicográfica e registram o que já foi executado na tabela local `_mapa_local_migrations`. A execução é idempotente quando o banco foi criado pelo próprio instalador.
+As migrações oficiais são aplicadas por `pnpm db:migrate`, que percorre todos os arquivos `drizzle/*.sql` em ordem lexicográfica e registra o que já foi executado na tabela `_mapa_local_migrations`. A execução é idempotente e pode ser usada no banco local ou em staging. `pnpm db:generate` serve somente para gerar uma nova diferença de schema; o SQL gerado deve ser revisado e versionado antes de ser aplicado. Os instaladores de Ubuntu e Windows mantêm seu controle local `_mapa_local_migrations` para o provisionamento inicial.
 
-A migração `0007_lesson_activity_step_order.sql` corrige o índice das atividades para permitir que etapas diferentes do mesmo nó usem o mesmo `orderIndex`. Em uma instalação nova, as migrações devem ser aplicadas de `0000` até a mais recente.
+A migração `0007_lesson_activity_step_order.sql` corrige o índice das atividades para permitir que etapas diferentes do mesmo nó usem o mesmo `orderIndex`. Em uma instalação nova, as migrações devem ser aplicadas de `0000` até a mais recente. O runner registra nomes de arquivos, portanto não deve haver renomeação de uma migração já aplicada.
 
 ## Validação realizada
 

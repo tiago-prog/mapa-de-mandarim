@@ -40,6 +40,7 @@ import { applyVocabularyExposure, getVocabularyEntryIdsForNode } from "./domain/
 import { createInitialSrsCard } from "./domain/srs";
 import { getMemoryWordStates } from "./word-state-memory";
 import { ENV } from "./_core/env";
+import { databaseRequiredError, isMemoryFallbackEnabled } from "./runtime-mode";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let mvpSeedPromise: Promise<void> | null = null;
@@ -470,10 +471,12 @@ export async function getDb() {
     try {
       _db = drizzle(process.env.DATABASE_URL);
     } catch (error) {
-      console.warn("[Database] Failed to connect:", error);
+      if (!isMemoryFallbackEnabled()) throw error;
+      console.warn("[Database] Failed to connect; using preview fallback:", error);
       _db = null;
     }
   }
+  if (!_db && !isMemoryFallbackEnabled()) throw databaseRequiredError();
   return _db;
 }
 
@@ -560,6 +563,7 @@ export async function getLearningMapData(userId = DEMO_USER_ID): Promise<Learnin
     try {
       return await getDbMapData(db, userId);
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory map:", error);
     }
   }
@@ -578,6 +582,7 @@ export async function getLearningNodeData(userId: number, nodeId: string): Promi
       const steps = stepRows.map(toStepSeed);
       return { path: map.path, node, steps: steps.length ? steps : MVP_LESSON_STEPS.filter((step) => step.nodeId === nodeId), activityCount: node.activityCount };
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory node:", error);
     }
   }
@@ -665,6 +670,7 @@ export async function getLessonData(userId: number, nodeId: string, stepId?: str
         : [];
       return buildLessonData(map, steps, activitySeeds, nodeProgress, stepId, activityId, vocabularyRows);
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory lesson:", error);
     }
   }
@@ -695,6 +701,7 @@ async function getInternalActivity(nodeId: string, stepId: string, activityId: s
       if (activity?.nodeId === nodeId && activity.stepId === stepId) return activity;
       return null;
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory activity:", error);
     }
   }
@@ -912,6 +919,7 @@ export async function submitActivityData(
         userProgress: map.userProgress,
       };
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory submission:", error);
     }
   }

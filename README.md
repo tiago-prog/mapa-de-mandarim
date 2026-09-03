@@ -51,6 +51,8 @@ Validações disponíveis:
 pnpm check
 pnpm lint
 pnpm test
+pnpm db:generate   # gera SQL de schema para revisão
+pnpm db:migrate    # aplica migrações versionadas
 ```
 
 O comando `pnpm dev` inicia o servidor da API e o Metro/Expo web. Para testar em dispositivo, utilize o fluxo de QR Code do ambiente Expo.
@@ -103,4 +105,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A sessão visual da aba Revisar, o resumo de revisões pendentes na tela Hoje e a persistência em MariaDB local já estão implementados. O próximo foco do produto pode avançar sem banco compartilhado; um banco remoto separado será necessário apenas na publicação ou colaboração entre máquinas.
+O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A sessão visual da aba Revisar, o resumo de revisões pendentes na tela Hoje e a persistência em MariaDB local já estão implementados. Rotas de dados pessoais exigem sessão em ambientes persistentes; o acesso anônimo é permitido somente no preview sem banco. O próximo foco é validar o ciclo persistente em MariaDB/CI e tornar a sincronização do cliente resiliente a reconexão.

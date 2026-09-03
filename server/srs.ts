@@ -10,6 +10,7 @@ import {
 } from "./domain/srs";
 import { getMemoryWordStates } from "./word-state-memory";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
+import { isMemoryFallbackEnabled } from "./runtime-mode";
 
 export type SrsCardWithEntry = SrsCardSnapshot & {
   hanzi: string;
@@ -55,6 +56,33 @@ function toCardWithEntry(card: SrsCardSnapshot, entry: typeof MVP_LEXICAL_ENTRIE
   return { ...entry, ...card };
 }
 
+function isDuplicateKeyError(error: unknown): boolean {
+  if (!error || typeof error !== "object") return false;
+  const candidate = error as { code?: unknown; errno?: unknown; message?: unknown };
+  return candidate.code === "ER_DUP_ENTRY"
+    || candidate.errno === 1062
+    || (typeof candidate.message === "string" && candidate.message.toLowerCase().includes("duplicate entry"));
+}
+
+function toPersistedReviewResult(
+  card: SrsCardSnapshot,
+  review: typeof srsReviews.$inferSelect,
+): SrsReviewResult {
+  return {
+    card,
+    review: {
+      id: review.id,
+      clientEventId: review.clientEventId,
+      rating: review.rating,
+      previousBox: review.previousBox,
+      nextBox: review.nextBox,
+      previousDueAt: review.previousDueAt,
+      nextDueAt: review.nextDueAt,
+      reviewedAt: review.reviewedAt,
+    },
+  };
+}
+
 function buildMemoryCard(userId: number, lexicalEntryId: string, now: Date): SrsCardSnapshot {
   const cardId = `srs-${userId}-${lexicalEntryId}`;
   const existing = memoryCards.get(cardId);
@@ -91,6 +119,7 @@ export async function ensureSrsCard(userId: number, lexicalEntryId: string, now 
       return toSnapshot(rows[0]);
     } catch (error) {
       if (error instanceof Error && error.message === "Palavra não encontrada") throw error;
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory card creation:", error);
     }
   }
@@ -112,6 +141,7 @@ async function materializeLearningCards(userId: number, now: Date): Promise<void
       }
       return;
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory learning card materialization:", error);
     }
   }
@@ -133,6 +163,7 @@ export async function getDueSrsCount(userId: number, now = new Date()): Promise<
         .where(and(eq(srsCards.userId, userId), lte(srsCards.dueAt, now)));
       return Number(rows[0]?.total ?? 0);
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory due count:", error);
     }
   }
@@ -154,6 +185,7 @@ export async function getDueSrsCards(userId: number, now = new Date(), limit = 2
         .limit(limit);
       return rows.map(({ card, entry }) => toCardWithEntry(toSnapshot(card), entry));
     } catch (error) {
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory due cards:", error);
     }
   }
@@ -188,18 +220,7 @@ export async function submitSrsRating(input: {
       if (!currentRow) throw new Error("Cartão SRS não encontrado");
       const currentCard = toSnapshot(currentRow);
       const existingReviews = await db.select().from(srsReviews).where(and(eq(srsReviews.userId, input.userId), eq(srsReviews.clientEventId, input.clientEventId))).limit(1);
-      if (existingReviews[0]) {
-        return { card: currentCard, review: {
-          id: existingReviews[0].id,
-          clientEventId: existingReviews[0].clientEventId,
-          rating: existingReviews[0].rating,
-          previousBox: existingReviews[0].previousBox,
-          nextBox: existingReviews[0].nextBox,
-          previousDueAt: existingReviews[0].previousDueAt,
-          nextDueAt: existingReviews[0].nextDueAt,
-          reviewedAt: existingReviews[0].reviewedAt,
-        } };
-      }
+      if (existingReviews[0]) return toPersistedReviewResult(currentCard, existingReviews[0]);
       const nextCard = applySrsReview(currentCard, input.rating, reviewedAt);
       const scheduleId = `review-${input.userId}-${input.clientEventId}`;
       const result: SrsReviewResult = {
@@ -242,6 +263,20 @@ export async function submitSrsRating(input: {
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === "Cartão SRS não encontrado") throw error;
+      if (isDuplicateKeyError(error)) {
+        const replayReviews = await db
+          .select()
+          .from(srsReviews)
+          .where(and(eq(srsReviews.userId, input.userId), eq(srsReviews.clientEventId, input.clientEventId)))
+          .limit(1);
+        const latestCards = await db
+          .select()
+          .from(srsCards)
+          .where(and(eq(srsCards.id, input.cardId), eq(srsCards.userId, input.userId)))
+          .limit(1);
+        if (replayReviews[0] && latestCards[0]) return toPersistedReviewResult(toSnapshot(latestCards[0]), replayReviews[0]);
+      }
+      if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory rating:", error);
     }
   }

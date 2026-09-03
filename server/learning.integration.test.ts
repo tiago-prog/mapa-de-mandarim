@@ -4,8 +4,19 @@ import { appRouter } from "./routers";
 import type { TrpcContext } from "./_core/context";
 
 function createContext(): TrpcContext {
+  const now = new Date("2026-09-03T12:00:00.000Z");
   return {
-    user: null,
+    user: {
+      id: 42002,
+      openId: "learning-test-42002",
+      name: "Learning Test User",
+      email: null,
+      loginMethod: "test",
+      role: "user",
+      createdAt: now,
+      updatedAt: now,
+      lastSignedIn: now,
+    },
     req: {
       protocol: "http",
       hostname: "localhost",
