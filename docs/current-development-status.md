@@ -248,14 +248,14 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Integrar revisão e Hoje
+### 1. Persistência real e staging
 
 A próxima camada deve:
 
-- Mostrar o número de revisões pendentes na tela Hoje.
-- Levar o aluno diretamente para a sessão Revisar.
-- Garantir a ativação automática de cartões ao entrar em `learning`.
-- Exibir um resumo da sessão concluída no contexto diário.
+- Aplicar as migrações no banco do ambiente de desenvolvimento/staging.
+- Substituir o fallback de preview por dados reais após configurar o banco.
+- Validar persistência do ciclo completo de aprendizagem e revisão.
+- Testar estados de erro, reconexão e primeiro acesso em ambiente configurado.
 
 ### 2. Completar a área administrativa
 

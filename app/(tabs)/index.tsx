@@ -104,6 +104,27 @@ export default function HomeScreen() {
             <Text className="text-sm leading-5 text-muted">{data.path.description}</Text>
           </AppCard>
 
+          <AppCard className="gap-4" tone={data.reviewDueCount > 0 ? "sand" : "paper"}>
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 pr-3">
+                <Text className="text-xs font-semibold uppercase tracking-widest text-primary">REVISÃO ESPAÇADA</Text>
+                <Text className="mt-1 text-lg font-bold text-foreground">
+                  {data.reviewDueCount > 0 ? `${data.reviewDueCount} ${data.reviewDueCount === 1 ? "palavra espera" : "palavras esperam"} por você` : "Nenhuma revisão pendente"}
+                </Text>
+              </View>
+              <Text className="text-3xl font-bold text-primary">复</Text>
+            </View>
+            <Text className="text-sm leading-5 text-muted">
+              {data.reviewDueCount > 0 ? "Reforce seu vocabulário no intervalo certo." : "Continue aprendendo e novas palavras entrarão na sua agenda."}
+            </Text>
+            <AppButton
+              label={data.reviewDueCount > 0 ? "Revisar agora" : "Abrir revisão"}
+              variant={data.reviewDueCount > 0 ? "primary" : "quiet"}
+              onPress={() => router.push("/(tabs)/review")}
+              accessibilityLabel="Abrir revisão espaçada"
+            />
+          </AppCard>
+
           <View className="gap-3">
             <Text className="text-xl font-bold text-foreground">Para manter o ritmo</Text>
             <AppCard className="flex-row items-center gap-4">

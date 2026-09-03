@@ -72,7 +72,7 @@
 - [x] Implementar revelação de resposta
 - [x] Implementar avaliações esqueci, difícil e fácil no motor e na API
 - [x] Registrar eventos de revisão com idempotência por `clientEventId`
-- [ ] Mostrar revisões pendentes na tela Hoje
+- [x] Mostrar revisões pendentes na tela Hoje
 
 ## Etapa 8 — Gamificação e progresso
 
@@ -87,7 +87,7 @@
 ## Etapa 9 — Validação do MVP
 
 - [ ] Testar fluxo completo de primeiro acesso
-- [ ] Testar fluxo completo de aprendizagem de um nó
+- [x] Testar fluxo completo de aprendizagem de um nó
 - [x] Testar fluxo de consulta no dicionário
 - [x] Testar fluxo de revisão
 - [ ] Testar persistência de progresso
@@ -115,7 +115,7 @@
 - [x] Criar componente reutilizável de seção e cabeçalho de tela
 - [x] Configurar navegação inferior inicial para Hoje, Mapa, Revisar e Biblioteca
 - [x] Substituir a tela inicial do template pela tela Hoje
-- [ ] Adicionar estados de carregamento, vazio e erro na tela Hoje
+- [x] Adicionar estados de carregamento, vazio e erro na tela Hoje
 - [x] Validar a tela Hoje em viewport mobile portrait
 
 ## Migração para Expo SDK 57
@@ -207,4 +207,4 @@
 
 ## Próximo checkpoint
 
-O próximo incremento recomendado é integrar as revisões pendentes à tela Hoje e criar a ativação automática de cartões a partir do percurso de aprendizagem.
+O próximo incremento recomendado é aplicar as migrações no ambiente de desenvolvimento/staging, substituir o fallback de preview por dados reais e validar a persistência do ciclo completo de aprendizagem e revisão.

@@ -18,7 +18,7 @@ import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "
 import { audioAssetInputSchema } from "./domain/audio";
 import { generateAndUploadAudio, getAudioAssetPlan } from "./audio-service";
 import { contentImportId, validateContentImport } from "./domain/content-import";
-import { ensureSrsCard, getDueSrsCards, submitSrsRating } from "./srs";
+import { ensureSrsCard, getDueSrsCards, getDueSrsCount, submitSrsRating } from "./srs";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
 const activityType = z.enum(["multiple_choice", "word_order", "context_choice", "fill_blank"]);
@@ -35,7 +35,11 @@ export const appRouter = router({
   }),
 
   today: router({
-    get: publicProcedure.query(({ ctx }) => getLearningMapData(getUserId(ctx.user?.id))),
+    get: publicProcedure.query(async ({ ctx }) => {
+      const userId = getUserId(ctx.user?.id);
+      const [map, reviewDueCount] = await Promise.all([getLearningMapData(userId), getDueSrsCount(userId)]);
+      return { ...map, reviewDueCount };
+    }),
   }),
 
   learningMap: router({

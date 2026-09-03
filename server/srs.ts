@@ -1,4 +1,4 @@
-import { and, asc, eq, lte } from "drizzle-orm";
+import { and, asc, count, eq, lte } from "drizzle-orm";
 
 import { lexicalEntries, srsCards, srsReviews, userWordStates } from "../drizzle/schema";
 import { getDb } from "./db";
@@ -120,6 +120,24 @@ async function materializeLearningCards(userId: number, now: Date): Promise<void
   for (const [lexicalEntryId, state] of states) {
     if (state.status === "learning") buildMemoryCard(userId, lexicalEntryId, now);
   }
+}
+
+export async function getDueSrsCount(userId: number, now = new Date()): Promise<number> {
+  await materializeLearningCards(userId, now);
+  const db = await getDb();
+  if (db) {
+    try {
+      const rows = await db
+        .select({ total: count() })
+        .from(srsCards)
+        .where(and(eq(srsCards.userId, userId), lte(srsCards.dueAt, now)));
+      return Number(rows[0]?.total ?? 0);
+    } catch (error) {
+      console.warn("[SRS] Falling back to in-memory due count:", error);
+    }
+  }
+
+  return [...memoryCards.values()].filter((card) => card.userId === userId && card.dueAt <= now).length;
 }
 
 export async function getDueSrsCards(userId: number, now = new Date(), limit = 20): Promise<SrsCardWithEntry[]> {

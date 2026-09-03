@@ -56,6 +56,11 @@ describe("learning vertical slice", () => {
     expect(exposedWords.map((entry) => entry.id)).toEqual(expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]));
     expect(exposedWords.find((entry) => entry.id === "wo-jiao")?.status).toBe("learning");
 
+    const dueAfterExposure = await caller.review.getDue({ limit: 50 });
+    expect(dueAfterExposure.some((card) => card.lexicalEntryId === "wo-jiao")).toBe(true);
+    const todayAfterExposure = await caller.today.get();
+    expect(todayAfterExposure.reviewDueCount).toBeGreaterThan(0);
+
     const manuallyKnown = await caller.dictionary.setStatus({ entryId: "nihao", status: "known" });
     expect(manuallyKnown.status).toBe("known");
 

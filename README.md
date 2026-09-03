@@ -12,7 +12,7 @@ As abas atuais são:
 |---|---|
 | Hoje | Tela inicial personalizada com próxima ação e progresso |
 | Mapa | Trilha inicial com nós, desbloqueios e progresso real |
-| Revisar | Espaço preparado para flashcards e SRS; motor ainda pendente |
+| Revisar | Sessão SRS funcional com fila, revelação, áudio e avaliações |
 | Biblioteca | Dicionário funcional com estados `new`, `learning` e `known` |
 
 ## Escopo do MVP
@@ -99,4 +99,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A próxima fase é construir a sessão visual da aba Revisar e integrar as revisões pendentes à tela Hoje.
+O backend SRS já possui cartões, histórico, agenda de vencimento, motor de cinco caixas e avaliações idempotentes. A sessão visual da aba Revisar e o resumo de revisões pendentes na tela Hoje já estão implementados. A próxima fase é aplicar as migrações no staging, substituir o fallback de preview por dados reais e validar a persistência ponta a ponta.

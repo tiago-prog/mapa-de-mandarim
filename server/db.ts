@@ -12,6 +12,7 @@ import {
   lessonActivities,
   lexicalEntries,
   nodeLexicalEntries,
+  srsCards,
   userNodeProgress,
   userProgress,
   userWordStates,
@@ -36,6 +37,7 @@ import {
   toPublicActivity,
 } from "./domain/learning";
 import { applyVocabularyExposure, getVocabularyEntryIdsForNode } from "./domain/vocabulary";
+import { createInitialSrsCard } from "./domain/srs";
 import { getMemoryWordStates } from "./word-state-memory";
 import { ENV } from "./_core/env";
 
@@ -859,6 +861,26 @@ export async function submitActivityData(
                   updatedAt: completedAt,
                 },
               });
+            if (nextState.status === "learning") {
+              const initialCard = createInitialSrsCard({ userId, lexicalEntryId: entryId, now: completedAt });
+              await tx
+                .insert(srsCards)
+                .values({
+                  id: initialCard.id,
+                  userId: initialCard.userId,
+                  lexicalEntryId: initialCard.lexicalEntryId,
+                  box: initialCard.box,
+                  dueAt: initialCard.dueAt,
+                  intervalDays: initialCard.intervalDays,
+                  easeFactor: String(initialCard.easeFactor),
+                  reviewCount: initialCard.reviewCount,
+                  lapseCount: initialCard.lapseCount,
+                  lastReviewedAt: initialCard.lastReviewedAt,
+                  createdAt: completedAt,
+                  updatedAt: completedAt,
+                })
+                .onDuplicateKeyUpdate({ set: { updatedAt: completedAt } });
+            }
           }
         }
         await tx.insert(activityCompletions).values({
