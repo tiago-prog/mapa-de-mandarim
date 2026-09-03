@@ -638,6 +638,16 @@ export const MVP_LESSON_STEPS: LearningNodeStepSeed[] = MVP_STEPS.map((step) => 
   };
 });
 
+export function getLexicalEntryIdsForNode(nodeId: string): string[] {
+  return [
+    ...new Set(
+      MVP_LESSON_STEPS
+        .filter((step) => step.nodeId === nodeId && step.content.kind === "vocabulary")
+        .flatMap((step) => (step.content.kind === "vocabulary" ? step.content.entryIds : [])),
+    ),
+  ];
+}
+
 export function toPublicActivity(activity: LessonActivitySeed): PublicLessonActivity {
   const { correctOptionId: _correctOptionId, correctOrder: _correctOrder, expectedAnswer: _expectedAnswer, ...publicActivity } = activity;
   return publicActivity;

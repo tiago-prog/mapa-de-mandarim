@@ -12,12 +12,14 @@ import {
   lessonActivities,
   lexicalEntries,
   nodeLexicalEntries,
+  userWordStates,
   userNodeProgress,
   userProgress,
   users,
 } from "../drizzle/schema";
 import {
   applyActivityCompletion,
+  getLexicalEntryIdsForNode,
   getNodeStatus,
   getRecommendedNode,
   MVP_ACTIVITIES,
@@ -34,6 +36,8 @@ import {
   type UserProgressSnapshot,
   toPublicActivity,
 } from "./domain/learning";
+import { applyWordExposure, type WordStatus } from "./domain/vocabulary";
+import { getMemoryWordState, setMemoryWordState } from "./word-states";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -98,6 +102,13 @@ type ActivitySubmission = {
   xpAwarded: number;
   node: LearningMapNode;
   userProgress: UserProgressSnapshot;
+  vocabularyUpdates: VocabularyUpdate[];
+};
+
+type VocabularyUpdate = {
+  lexicalEntryId: string;
+  status: WordStatus;
+  lastSeenAt: Date;
 };
 
 const memoryNodeProgress = new Map<number, Map<string, NodeProgressSnapshot>>();
@@ -702,6 +713,45 @@ function evaluateActivity(
   return { isCorrect: Boolean(activity.correctOptionId) && activity.correctOptionId === normalizedSelection, selectedOptionId: normalizedSelection };
 }
 
+function toVocabularyUpdate(lexicalEntryId: string, state: { status: WordStatus; lastSeenAt: Date | null }): VocabularyUpdate {
+  return {
+    lexicalEntryId,
+    status: state.status,
+    lastSeenAt: state.lastSeenAt ?? new Date(),
+  };
+}
+
+function applyMemoryVocabularyExposure(userId: number, nodeId: string, seenAt: Date): VocabularyUpdate[] {
+  return getLexicalEntryIdsForNode(nodeId).map((lexicalEntryId) => {
+    const nextState = applyWordExposure(getMemoryWordState(userId, lexicalEntryId), seenAt);
+    setMemoryWordState(userId, lexicalEntryId, nextState);
+    return toVocabularyUpdate(lexicalEntryId, nextState);
+  });
+}
+
+async function getDbNodeLexicalEntryIds(db: ReturnType<typeof drizzle>, nodeId: string): Promise<string[]> {
+  const rows = await db
+    .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
+    .from(nodeLexicalEntries)
+    .where(eq(nodeLexicalEntries.nodeId, nodeId));
+  return rows.map((row) => row.lexicalEntryId);
+}
+
+async function getDbVocabularyUpdates(
+  db: ReturnType<typeof drizzle>,
+  userId: number,
+  nodeId: string,
+): Promise<VocabularyUpdate[]> {
+  const lexicalEntryIds = await getDbNodeLexicalEntryIds(db, nodeId);
+  if (!lexicalEntryIds.length) return [];
+  const states = await db.select().from(userWordStates).where(eq(userWordStates.userId, userId));
+  const stateByEntryId = new Map(states.map((state) => [state.lexicalEntryId, state]));
+  return lexicalEntryIds.flatMap((lexicalEntryId) => {
+    const state = stateByEntryId.get(lexicalEntryId);
+    return state?.lastSeenAt ? [toVocabularyUpdate(lexicalEntryId, state)] : [];
+  });
+}
+
 export async function submitActivityData(
   userId: number,
   input: {
@@ -744,6 +794,7 @@ export async function submitActivityData(
             xpAwarded: existing[0].xpAwarded,
             node,
             userProgress: map.userProgress,
+            vocabularyUpdates: await getDbVocabularyUpdates(db, userId, input.nodeId),
           };
         }
       }
@@ -783,6 +834,7 @@ export async function submitActivityData(
         activityRows.length,
       );
 
+      let vocabularyUpdates: VocabularyUpdate[] = [];
       await db.transaction(async (tx) => {
         await tx
           .insert(userNodeProgress)
@@ -821,6 +873,35 @@ export async function submitActivityData(
           xpAwarded: result.xpAwarded,
           completedAt,
         });
+
+        const lexicalEntryIds = await tx
+          .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
+          .from(nodeLexicalEntries)
+          .where(eq(nodeLexicalEntries.nodeId, input.nodeId));
+        const currentWordStates = await tx.select().from(userWordStates).where(eq(userWordStates.userId, userId));
+        const stateByEntryId = new Map(currentWordStates.map((state) => [state.lexicalEntryId, state]));
+        vocabularyUpdates = lexicalEntryIds.map(({ lexicalEntryId }) => {
+          const nextState = applyWordExposure(stateByEntryId.get(lexicalEntryId), completedAt);
+          return { lexicalEntryId, status: nextState.status, lastSeenAt: nextState.lastSeenAt! };
+        });
+        for (const vocabularyUpdate of vocabularyUpdates) {
+          await tx
+            .insert(userWordStates)
+            .values({
+              userId,
+              lexicalEntryId: vocabularyUpdate.lexicalEntryId,
+              status: vocabularyUpdate.status,
+              lastSeenAt: vocabularyUpdate.lastSeenAt,
+              updatedAt: completedAt,
+            })
+            .onDuplicateKeyUpdate({
+              set: {
+                status: vocabularyUpdate.status,
+                lastSeenAt: vocabularyUpdate.lastSeenAt,
+                updatedAt: completedAt,
+              },
+            });
+        }
       });
 
       const map = await getLearningMapData(userId);
@@ -838,6 +919,7 @@ export async function submitActivityData(
         xpAwarded: result.xpAwarded,
         node,
         userProgress: map.userProgress,
+        vocabularyUpdates,
       };
     } catch (error) {
       console.warn("[Learning] Falling back to in-memory submission:", error);
@@ -860,6 +942,7 @@ export async function submitActivityData(
     completedAt,
     totalActivityCount,
   );
+  const vocabularyUpdates = applyMemoryVocabularyExposure(userId, input.nodeId, completedAt);
   getMemoryNodeProgress(userId).set(input.nodeId, result.nodeProgress);
   memoryUserProgress.set(userId, result.userProgress);
   const map = getMemoryMapData(userId);
@@ -877,6 +960,7 @@ export async function submitActivityData(
     xpAwarded: result.xpAwarded,
     node,
     userProgress: map.userProgress,
+    vocabularyUpdates,
   };
   memoryEvents.set(eventKey, submission);
   return submission;

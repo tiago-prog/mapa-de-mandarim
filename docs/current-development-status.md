@@ -7,7 +7,7 @@
 
 O Mapa de Mandarim já possui uma base funcional de aprendizagem móvel: mapa de progressão, nós, lições, atividades, missões e vocabulário inicial. A infraestrutura inicial de áudio também foi preparada, incluindo reprodução mobile, fallback TTS, cache local, modelo de assets e serviço server-side para futura geração neural.
 
-A principal lacuna funcional neste momento é fechar o ciclo entre **lição, vocabulário pessoal, SRS e revisão**. As entradas lexicais e os estados pessoais já existem, mas a conclusão de uma lição ainda não cria ou atualiza automaticamente os estados das palavras. O SRS e os flashcards ainda não foram implementados.
+A integração entre **lição e vocabulário pessoal** já está implementada. Ao submeter uma atividade, o sistema registra a exposição das palavras do nó, cria ou atualiza `user_word_states`, atualiza `lastSeenAt` e preserva o estado `known`. A principal lacuna funcional neste momento é o ciclo de **SRS e revisão**: cartões, agenda e histórico ainda não foram implementados.
 
 ## O que está funcional
 
@@ -21,6 +21,7 @@ A principal lacuna funcional neste momento é fechar o ciclo entre **lição, vo
 | Missões | MVP funcional, incluindo missão final com diálogo em vários turnos |
 | Vocabulário editorial | Entradas em `lexical_entries` com Hanzi, pinyin, significado e exemplos |
 | Estados pessoais | `user_word_states` com estados `new`, `learning` e `known` |
+| Integração lição → vocabulário | Funcional, idempotente e persistida com fallback em memória |
 | Pesquisa de dicionário | Funcional |
 | Áudio mobile | `AudioButton` com `expo-audio` |
 | Fallback de pronúncia | `expo-speech` |
@@ -86,21 +87,21 @@ learning  → apresentada/praticada pelo aluno
 known     → conhecida ou dominada segundo a política do produto
 ```
 
-### Lacuna atual
+### Integração implementada
 
-Ao concluir uma lição ou nó, o sistema ainda não executa automaticamente:
+Ao submeter uma atividade, o sistema agora executa de forma idempotente:
 
 ```text
-identificar palavras ensinadas
+identificar palavras associadas explicitamente ao nó
       ↓
-criar user_word_states ausentes
+criar ou atualizar user_word_states
       ↓
 atualizar lastSeenAt
       ↓
-marcar exposição inicial como learning
+marcar exposição como learning, preservando known
 ```
 
-A conclusão de uma lição **não deve marcar automaticamente uma palavra como `known`**. Exposição e domínio são conceitos diferentes.
+A integração ocorre na mesma transação de progresso e conclusão da atividade quando há banco. No preview sem banco, o dicionário e as lições compartilham o mesmo estado em memória. A conclusão de uma lição **não marca automaticamente uma palavra como `known`**: exposição e domínio continuam sendo conceitos diferentes.
 
 ## SRS ainda pendente
 
@@ -236,19 +237,11 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Integrar lição com vocabulário pessoal
+### 1. Integrar lição com vocabulário pessoal — concluído
 
-Criar uma função de domínio idempotente que receba `userId` e `nodeId`, encontre as entradas lexicais do nó e faça upsert em `user_word_states`:
+A função de domínio e o fluxo de persistência já fazem upsert idempotente em `user_word_states`, preservam `known`, atualizam `lastSeenAt` e funcionam no fallback em memória. A cobertura inclui palavras novas, palavras conhecidas e o percurso real de uma lição.
 
-```text
-new entrada → criar como learning ao concluir/praticar
-entrada existente → preservar known; atualizar learning apenas quando apropriado
-lastSeenAt → atualizar em cada exposição relevante
-```
-
-Adicionar testes para conclusão repetida, palavras conhecidas e palavras novas.
-
-### 2. Criar o modelo SRS
+### 2. Criar o modelo SRS — próximo marco
 
 Adicionar migrações e tipos para `srs_cards` e `srs_reviews`. O SRS deve referenciar `lexicalEntryId`, nunca duplicar Hanzi, pinyin ou significados.
 
@@ -300,7 +293,7 @@ O estado validado antes deste registo foi:
 
 ```text
 TypeScript: OK
-Testes: 18 passaram
+Testes: 20 passaram
 Lint: OK
 ```
 

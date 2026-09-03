@@ -2,9 +2,11 @@ import { and, eq, like, or } from "drizzle-orm";
 
 import { lexicalEntries, userWordStates } from "../drizzle/schema";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
+import { type WordStatus } from "./domain/vocabulary";
 import { getDb } from "./db";
+import { getMemoryWordState, setMemoryWordState } from "./word-states";
 
-export type WordStatus = "new" | "known" | "learning";
+export type { WordStatus } from "./domain/vocabulary";
 
 export type DictionaryEntry = {
   id: string;
@@ -16,16 +18,6 @@ export type DictionaryEntry = {
   status: WordStatus;
   lastSeenAt: Date | null;
 };
-
-const memoryWordStates = new Map<number, Map<string, { status: WordStatus; lastSeenAt: Date | null }>>();
-
-function getMemoryWordStates(userId: number) {
-  const existing = memoryWordStates.get(userId);
-  if (existing) return existing;
-  const created = new Map<string, { status: WordStatus; lastSeenAt: Date | null }>();
-  memoryWordStates.set(userId, created);
-  return created;
-}
 
 function toDictionaryEntry(
   entry: typeof lexicalEntries.$inferSelect,
@@ -51,13 +43,12 @@ function toMemoryEntry(id: string, status?: { status: WordStatus; lastSeenAt: Da
 
 function searchMemory(userId: number, query: string, limit: number): DictionaryEntry[] {
   const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
-  const states = getMemoryWordStates(userId);
   return MVP_LEXICAL_ENTRIES.filter((entry) => {
     if (!normalizedQuery) return true;
     return [entry.hanzi, entry.pinyin, entry.meaningPtBr].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedQuery));
   })
     .slice(0, limit)
-    .map((entry) => toMemoryEntry(entry.id, states.get(entry.id))!)
+    .map((entry) => toMemoryEntry(entry.id, getMemoryWordState(userId, entry.id))!)
     .filter(Boolean);
 }
 
@@ -102,7 +93,7 @@ export async function getDictionaryEntry(userId: number, entryId: string): Promi
       console.warn("[Dictionary] Falling back to in-memory entry:", error);
     }
   }
-  return toMemoryEntry(entryId, getMemoryWordStates(userId).get(entryId));
+  return toMemoryEntry(entryId, getMemoryWordState(userId, entryId));
 }
 
 export async function setDictionaryEntryStatus(
@@ -127,6 +118,6 @@ export async function setDictionaryEntryStatus(
     }
   }
 
-  getMemoryWordStates(userId).set(entryId, { status, lastSeenAt });
+  setMemoryWordState(userId, entryId, { status, lastSeenAt });
   return { ...entry, status, lastSeenAt };
 }

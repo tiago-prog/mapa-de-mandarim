@@ -99,4 +99,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-A próxima fase é definir o modelo de domínio e criar os dados da primeira trilha. Em seguida, o mapa deixará de ser apenas uma estrutura visual e passará a responder ao progresso real do usuário.
+A próxima fase é criar o modelo e o motor de **SRS**. A conclusão de atividades já atualiza o vocabulário pessoal e preserva o estado de cada palavra; agora o mapa deve alimentar cartões de revisão com agenda, histórico e avaliações de desempenho.
