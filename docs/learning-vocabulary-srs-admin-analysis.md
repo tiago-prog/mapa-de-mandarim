@@ -6,7 +6,7 @@ O projeto deve tratar **conteúdo pedagógico**, **vocabulário pessoal** e **re
 
 Esta separação também define a futura área administrativa. O administrador cria nós, missões, etapas, atividades e associações lexicais. O aluno percorre esse conteúdo. Ao concluir ou praticar uma lição, o backend materializa as palavras no vocabulário pessoal do aluno. Mais tarde, o SRS seleciona as palavras elegíveis e cria ou atualiza os cartões de revisão.
 
-A base atual já possui o primeiro vertical slice e a camada inicial do SRS. A integração entre atividade e vocabulário pessoal é idempotente, e o backend agora possui cartões, histórico, agenda de vencimento, motor de cinco caixas e endpoints para cartões vencidos e avaliações. A próxima evolução é completar a experiência visual da aba Revisar.
+A base atual já possui o primeiro vertical slice, a camada inicial do SRS e uma sessão visual funcional de revisão. A integração entre atividade e vocabulário pessoal é idempotente, e o backend possui cartões, histórico, agenda de vencimento, motor de cinco caixas e endpoints para cartões vencidos e avaliações. A próxima evolução é levar a fila de revisão para a tela Hoje e ativar cartões automaticamente durante o percurso de aprendizagem.
 
 ## 1. Estado atual do projeto
 
@@ -293,11 +293,11 @@ A integração de exposição lexical foi concluída: uma função de domínio i
 
 ### Fase 2 — SRS independente
 
-A primeira camada foi concluída com `srs_cards` e `srs_reviews`, motor puro de caixas e intervalos, fila de cartões vencidos, ativação idempotente e submissão transacional de avaliações. Permanecem a sessão visual, a revelação progressiva, a ativação automática a partir do percurso de aprendizagem e a integração da fila na tela Hoje.
+A primeira camada foi concluída com `srs_cards` e `srs_reviews`, motor puro de caixas e intervalos, fila de cartões vencidos, ativação idempotente, submissão transacional de avaliações e a sessão visual da aba Revisar com revelação progressiva e áudio. Permanecem a ativação automática a partir de todo o percurso de aprendizagem e a integração da fila na tela Hoje.
 
-### Fase 3 — Aba Revisar
+### Fase 3 — Integração de Revisão e Hoje
 
-Criar o fluxo de flashcard, revelação de resposta e avaliações `Esqueci`, `Difícil` e `Fácil`. A tela deve consumir apenas a API de revisão e não manipular diretamente estados pedagógicos.
+A sessão de flashcard, revelação de resposta e avaliações `Esqueci`, `Difícil` e `Fácil` já consome apenas a API de revisão e não manipula diretamente estados pedagógicos. O próximo passo é mostrar a quantidade de cartões vencidos na tela Hoje, levar o aluno para a sessão e materializar cartões automaticamente quando uma palavra entrar em `learning`.
 
 ### Fase 4 — Editor administrativo mínimo
 

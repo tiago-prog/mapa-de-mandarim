@@ -30,8 +30,8 @@ O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática
 | Azure Speech | Serviço server-side implementado, dependente de configuração |
 | Importação JSON | Contrato, validação e gravação de rascunhos implementados |
 | Área administrativa visual | Ainda não implementada |
-| Flashcards | Modelo de cartão e agenda inicial implementados; interface ainda pendente |
-| SRS | Schema, motor determinístico e API inicial implementados; sessão visual ainda pendente |
+| Flashcards | Modelo, agenda e sessão visual de revisão implementados; integração com Hoje ainda pendente |
+| SRS | Schema, motor determinístico, API e aba Revisar implementados |
 
 ## Arquitetura de conteúdo
 
@@ -115,7 +115,7 @@ A primeira camada do SRS já está disponível:
 - Consulta de cartões vencidos e submissão transacional de avaliações pela API.
 - Histórico protegido por `clientEventId` para evitar avaliações duplicadas.
 
-Ainda faltam a ativação automática de cartões a partir do fluxo completo de aprendizagem, a sessão visual da aba Revisar, a revelação progressiva da resposta e a exibição de revisões pendentes na tela Hoje.
+Ainda faltam a integração das revisões pendentes na tela Hoje e a ativação automática de cartões a partir de todo o percurso de aprendizagem. A sessão visual da aba Revisar já está disponível com revelação, áudio e avaliações.
 
 A arquitetura recomendada é manter o SRS separado do vocabulário:
 
@@ -248,17 +248,14 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Completar a aba Revisar
+### 1. Integrar revisão e Hoje
 
-A tela deve:
+A próxima camada deve:
 
-- Consultar cartões vencidos.
-- Mostrar o prompt de forma progressiva.
-- Revelar resposta e significado.
-- Reproduzir áudio.
-- Receber a avaliação.
-- Persistir o histórico.
-- Atualizar o próximo vencimento.
+- Mostrar o número de revisões pendentes na tela Hoje.
+- Levar o aluno diretamente para a sessão Revisar.
+- Garantir a ativação automática de cartões ao entrar em `learning`.
+- Exibir um resumo da sessão concluída no contexto diário.
 
 ### 2. Completar a área administrativa
 

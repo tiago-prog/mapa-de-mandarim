@@ -1,6 +1,6 @@
 import { and, asc, eq, lte } from "drizzle-orm";
 
-import { lexicalEntries, srsCards, srsReviews } from "../drizzle/schema";
+import { lexicalEntries, srsCards, srsReviews, userWordStates } from "../drizzle/schema";
 import { getDb } from "./db";
 import {
   applySrsReview,
@@ -8,6 +8,7 @@ import {
   type SrsCardSnapshot,
   type SrsRating,
 } from "./domain/srs";
+import { getMemoryWordStates } from "./word-state-memory";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
 
 export type SrsCardWithEntry = SrsCardSnapshot & {
@@ -99,7 +100,30 @@ export async function ensureSrsCard(userId: number, lexicalEntryId: string, now 
   return buildMemoryCard(userId, lexicalEntryId, now);
 }
 
+async function materializeLearningCards(userId: number, now: Date): Promise<void> {
+  const db = await getDb();
+  if (db) {
+    try {
+      const learningWords = await db.select({ lexicalEntryId: userWordStates.lexicalEntryId })
+        .from(userWordStates)
+        .where(and(eq(userWordStates.userId, userId), eq(userWordStates.status, "learning")));
+      for (const word of learningWords) {
+        await ensureSrsCard(userId, word.lexicalEntryId, now);
+      }
+      return;
+    } catch (error) {
+      console.warn("[SRS] Falling back to in-memory learning card materialization:", error);
+    }
+  }
+
+  const states = getMemoryWordStates(userId);
+  for (const [lexicalEntryId, state] of states) {
+    if (state.status === "learning") buildMemoryCard(userId, lexicalEntryId, now);
+  }
+}
+
 export async function getDueSrsCards(userId: number, now = new Date(), limit = 20): Promise<SrsCardWithEntry[]> {
+  await materializeLearningCards(userId, now);
   const db = await getDb();
   if (db) {
     try {

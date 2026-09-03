@@ -68,8 +68,8 @@
 
 - [x] Criar modelo de cartão associado à entrada lexical, separado do nó
 - [x] Implementar política determinística de repetição espaçada
-- [ ] Criar sessão de revisão
-- [ ] Implementar revelação de resposta
+- [x] Criar sessão de revisão
+- [x] Implementar revelação de resposta
 - [x] Implementar avaliações esqueci, difícil e fácil no motor e na API
 - [x] Registrar eventos de revisão com idempotência por `clientEventId`
 - [ ] Mostrar revisões pendentes na tela Hoje
@@ -89,7 +89,7 @@
 - [ ] Testar fluxo completo de primeiro acesso
 - [ ] Testar fluxo completo de aprendizagem de um nó
 - [x] Testar fluxo de consulta no dicionário
-- [ ] Testar fluxo de revisão
+- [x] Testar fluxo de revisão
 - [ ] Testar persistência de progresso
 - [ ] Testar estados de erro e reconexão
 - [ ] Validar uso em telas portrait pequenas
@@ -203,8 +203,8 @@
 - [x] Compartilhar o estado lexical no fallback em memória do preview
 - [x] Cobrir a política com testes unitários e de integração
 - [x] Criar modelo de cartões SRS e histórico de revisões
-- [ ] Criar a aba Revisar funcional
+- [x] Criar a aba Revisar funcional
 
 ## Próximo checkpoint
 
-O próximo incremento recomendado é implementar a sessão visual da aba Revisar, com revelação progressiva, criação/ativação automática de cartões e integração das revisões pendentes na tela Hoje.
+O próximo incremento recomendado é integrar as revisões pendentes à tela Hoje e criar a ativação automática de cartões a partir do percurso de aprendizagem.
