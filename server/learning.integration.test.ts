@@ -52,6 +52,13 @@ describe("learning vertical slice", () => {
     expect(firstSubmission.xpAwarded).toBe(15);
     expect(firstSubmission.node.progressPercent).toBe(33);
 
+    const exposedWords = await caller.dictionary.myWords({});
+    expect(exposedWords.map((entry) => entry.id)).toEqual(expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]));
+    expect(exposedWords.find((entry) => entry.id === "wo-jiao")?.status).toBe("learning");
+
+    const manuallyKnown = await caller.dictionary.setStatus({ entryId: "nihao", status: "known" });
+    expect(manuallyKnown.status).toBe("known");
+
     const secondSubmission = await caller.lesson.submitActivity({
       nodeId: "intro",
       stepId: "intro-practice",
@@ -71,6 +78,10 @@ describe("learning vertical slice", () => {
     });
     expect(finalSubmission.isCorrect).toBe(true);
     expect(finalSubmission.node.progressPercent).toBe(100);
+
+    const wordsAfterRepeatedExposure = await caller.dictionary.myWords({});
+    expect(wordsAfterRepeatedExposure.find((entry) => entry.id === "nihao")?.status).toBe("known");
+    expect(wordsAfterRepeatedExposure.find((entry) => entry.id === "wo-jiao")?.lastSeenAt).toBeInstanceOf(Date);
 
     const updatedMap = await caller.learningMap.get();
     expect(updatedMap.nodes.find((node) => node.id === "intro")?.status).toBe("completed");

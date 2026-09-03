@@ -7,7 +7,7 @@
 
 O Mapa de Mandarim já possui uma base funcional de aprendizagem móvel: mapa de progressão, nós, lições, atividades, missões e vocabulário inicial. A infraestrutura inicial de áudio também foi preparada, incluindo reprodução mobile, fallback TTS, cache local, modelo de assets e serviço server-side para futura geração neural.
 
-A principal lacuna funcional neste momento é fechar o ciclo entre **lição, vocabulário pessoal, SRS e revisão**. As entradas lexicais e os estados pessoais já existem, mas a conclusão de uma lição ainda não cria ou atualiza automaticamente os estados das palavras. O SRS e os flashcards ainda não foram implementados.
+O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática de uma atividade identifica as palavras do nó, cria ou atualiza os estados pessoais e registra `lastSeenAt`. O SRS, os flashcards e a aba de revisão continuam como a próxima grande lacuna funcional.
 
 ## O que está funcional
 
@@ -20,7 +20,7 @@ A principal lacuna funcional neste momento é fechar o ciclo entre **lição, vo
 | Atividades | Escolha múltipla, ordenação, escolha contextual e preenchimento de lacuna |
 | Missões | MVP funcional, incluindo missão final com diálogo em vários turnos |
 | Vocabulário editorial | Entradas em `lexical_entries` com Hanzi, pinyin, significado e exemplos |
-| Estados pessoais | `user_word_states` com estados `new`, `learning` e `known` |
+| Estados pessoais | `user_word_states` com estados `new`, `learning` e `known`, atualizados automaticamente na prática da lição |
 | Pesquisa de dicionário | Funcional |
 | Áudio mobile | `AudioButton` com `expo-audio` |
 | Fallback de pronúncia | `expo-speech` |
@@ -86,21 +86,23 @@ learning  → apresentada/praticada pelo aluno
 known     → conhecida ou dominada segundo a política do produto
 ```
 
-### Lacuna atual
+### Integração de exposição entregue
 
-Ao concluir uma lição ou nó, o sistema ainda não executa automaticamente:
+Ao submeter uma atividade, o sistema agora executa automaticamente:
 
 ```text
-identificar palavras ensinadas
+identificar palavras vinculadas ao nó
       ↓
 criar user_word_states ausentes
       ↓
 atualizar lastSeenAt
       ↓
-marcar exposição inicial como learning
+marcar palavras novas como learning
 ```
 
-A conclusão de uma lição **não deve marcar automaticamente uma palavra como `known`**. Exposição e domínio são conceitos diferentes.
+A operação é idempotente, deduplica as entradas do nó e preserva uma palavra já marcada como `known`. A mesma regra existe no banco e no fallback em memória do preview, mantendo a Biblioteca consistente nos dois ambientes.
+
+A exposição **não marca automaticamente uma palavra como `known`**. Exposição e domínio continuam sendo conceitos diferentes.
 
 ## SRS ainda pendente
 
@@ -236,23 +238,11 @@ Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os err
 
 ## Próxima ordem recomendada
 
-### 1. Integrar lição com vocabulário pessoal
-
-Criar uma função de domínio idempotente que receba `userId` e `nodeId`, encontre as entradas lexicais do nó e faça upsert em `user_word_states`:
-
-```text
-new entrada → criar como learning ao concluir/praticar
-entrada existente → preservar known; atualizar learning apenas quando apropriado
-lastSeenAt → atualizar em cada exposição relevante
-```
-
-Adicionar testes para conclusão repetida, palavras conhecidas e palavras novas.
-
-### 2. Criar o modelo SRS
+### 1. Criar o modelo SRS
 
 Adicionar migrações e tipos para `srs_cards` e `srs_reviews`. O SRS deve referenciar `lexicalEntryId`, nunca duplicar Hanzi, pinyin ou significados.
 
-### 3. Criar o motor SRS
+### 2. Criar o motor SRS
 
 Implementar uma política simples, determinística e testável para:
 
@@ -262,7 +252,7 @@ rating → próxima caixa → próximo intervalo → dueAt
 
 A função deve ser pura antes de ser ligada ao banco.
 
-### 4. Criar a aba Revisar
+### 3. Criar a aba Revisar
 
 A tela deve:
 
@@ -274,7 +264,7 @@ A tela deve:
 - Persistir o histórico.
 - Atualizar o próximo vencimento.
 
-### 5. Completar a área administrativa
+### 4. Completar a área administrativa
 
 Depois do ciclo de vocabulário e SRS estar estável, criar:
 
@@ -300,7 +290,7 @@ O estado validado antes deste registo foi:
 
 ```text
 TypeScript: OK
-Testes: 18 passaram
+Testes: 21 passaram
 Lint: OK
 ```
 

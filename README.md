@@ -4,22 +4,22 @@ Aplicativo mobile first de aprendizado de mandarim organizado como uma jornada v
 
 ## Estado atual
 
-A Etapa 1 foi concluída como fundação do projeto. O app já possui a tela Hoje personalizada, navegação inicial, componentes-base, identidade visual inicial, branding, autenticação preparada pelo scaffold e configuração migrada para Expo SDK 57.0.9.
+A fundação do projeto e o primeiro vertical slice pedagógico já estão implementados. O app possui a tela Hoje personalizada, mapa de progressão, nós, lições, atividades, missões, dicionário, estados pessoais de palavras, identidade visual inicial, autenticação preparada pelo scaffold e configuração migrada para Expo SDK 57.0.9.
 
 As abas atuais são:
 
 | Aba | Estado |
 |---|---|
 | Hoje | Tela inicial personalizada com próxima ação e progresso |
-| Mapa | Estrutura inicial preparada para a trilha |
-| Revisar | Espaço preparado para flashcards e SRS |
-| Biblioteca | Espaço preparado para dicionário e palavras conhecidas |
+| Mapa | Trilha inicial com nós, desbloqueios e progresso real |
+| Revisar | Espaço preparado para flashcards e SRS; motor ainda pendente |
+| Biblioteca | Dicionário funcional com estados `new`, `learning` e `known` |
 
 ## Escopo do MVP
 
 A primeira versão validará uma única trilha: **Apresentações e informações pessoais**. O usuário deverá conseguir confirmar palavras conhecidas, seguir nós de aprendizagem, consultar o dicionário, completar uma etapa intermediária, revisar com flashcards, realizar uma missão curta e receber progresso visual e XP.
 
-O MVP não inclui rede social, ranking, loja, economia virtual, múltiplas trilhas completas, leitor avançado, conversação livre, reconhecimento de voz ou IA generativa para criação de cursos.
+Ao praticar uma atividade, as palavras vinculadas ao nó entram automaticamente no vocabulário pessoal como `learning`, sem rebaixar uma palavra que o usuário marcou como `known`. O MVP não inclui rede social, ranking, loja, economia virtual, múltiplas trilhas completas, leitor avançado, conversação livre, reconhecimento de voz ou IA generativa para criação de cursos.
 
 ## Stack
 
@@ -99,4 +99,4 @@ A tipografia de referência combina DM Serif Display para títulos, Noto Serif S
 
 ## Próxima etapa
 
-A próxima fase é definir o modelo de domínio e criar os dados da primeira trilha. Em seguida, o mapa deixará de ser apenas uma estrutura visual e passará a responder ao progresso real do usuário.
+A próxima fase é implementar o modelo SRS separado do vocabulário pessoal, com cartões, histórico de revisões, agenda de vencimento e uma primeira sessão funcional na aba Revisar.

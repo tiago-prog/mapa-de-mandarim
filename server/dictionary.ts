@@ -3,6 +3,7 @@ import { and, eq, like, or } from "drizzle-orm";
 import { lexicalEntries, userWordStates } from "../drizzle/schema";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
 import { getDb } from "./db";
+import { getMemoryWordStates } from "./word-state-memory";
 
 export type WordStatus = "new" | "known" | "learning";
 
@@ -16,16 +17,6 @@ export type DictionaryEntry = {
   status: WordStatus;
   lastSeenAt: Date | null;
 };
-
-const memoryWordStates = new Map<number, Map<string, { status: WordStatus; lastSeenAt: Date | null }>>();
-
-function getMemoryWordStates(userId: number) {
-  const existing = memoryWordStates.get(userId);
-  if (existing) return existing;
-  const created = new Map<string, { status: WordStatus; lastSeenAt: Date | null }>();
-  memoryWordStates.set(userId, created);
-  return created;
-}
 
 function toDictionaryEntry(
   entry: typeof lexicalEntries.$inferSelect,

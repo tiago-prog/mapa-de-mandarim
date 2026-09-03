@@ -192,3 +192,19 @@
 - [x] Criar atividade de preenchimento de lacuna
 - [x] Criar missão final com diálogo completo
 - [ ] Conectar revisão e SRS ao fechamento do nó
+
+## Etapa 4 — Integração entre lições e vocabulário pessoal
+
+- [x] Criar política pura de exposição lexical
+- [x] Promover palavras novas para `learning` ao praticar uma atividade
+- [x] Preservar palavras marcadas manualmente como `known`
+- [x] Atualizar `lastSeenAt` em cada exposição relevante
+- [x] Persistir a exposição no banco dentro da transação da atividade
+- [x] Compartilhar o estado lexical no fallback em memória do preview
+- [x] Cobrir a política com testes unitários e de integração
+- [ ] Criar modelo de cartões SRS e histórico de revisões
+- [ ] Criar a aba Revisar funcional
+
+## Próximo checkpoint
+
+O próximo incremento recomendado é implementar `srs_cards` e `srs_reviews`, mantendo o vocabulário editorial, o estado pessoal e a agenda de revisão como camadas separadas.

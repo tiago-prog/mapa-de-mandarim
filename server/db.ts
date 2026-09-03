@@ -1,4 +1,4 @@
-import { asc, eq, inArray } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 
 import {
@@ -14,6 +14,7 @@ import {
   nodeLexicalEntries,
   userNodeProgress,
   userProgress,
+  userWordStates,
   users,
 } from "../drizzle/schema";
 import {
@@ -34,6 +35,8 @@ import {
   type UserProgressSnapshot,
   toPublicActivity,
 } from "./domain/learning";
+import { applyVocabularyExposure, getVocabularyEntryIdsForNode } from "./domain/vocabulary";
+import { getMemoryWordStates } from "./word-state-memory";
 import { ENV } from "./_core/env";
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -103,6 +106,18 @@ type ActivitySubmission = {
 const memoryNodeProgress = new Map<number, Map<string, NodeProgressSnapshot>>();
 const memoryUserProgress = new Map<number, UserProgressSnapshot>();
 const memoryEvents = new Map<string, ActivitySubmission>();
+
+function markMemoryVocabularyExposed(userId: number, nodeId: string, seenAt: Date): void {
+  const entryIds = getVocabularyEntryIdsForNode(MVP_LESSON_STEPS, nodeId);
+  if (entryIds.length === 0) return;
+
+  const states = getMemoryWordStates(userId);
+  const nextStates = applyVocabularyExposure(states, entryIds, seenAt);
+  for (const entryId of entryIds) {
+    const nextState = nextStates.get(entryId);
+    if (nextState) states.set(entryId, nextState);
+  }
+}
 
 function getMemoryNodeProgress(userId: number) {
   const existing = memoryNodeProgress.get(userId);
@@ -811,6 +826,41 @@ export async function submitActivityData(
           .onDuplicateKeyUpdate({
             set: { xp: result.userProgress.xp, streakDays: result.userProgress.streakDays, completedNodeCount: result.userProgress.completedNodeCount, updatedAt: completedAt },
           });
+        const relationRows = await tx
+          .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
+          .from(nodeLexicalEntries)
+          .where(eq(nodeLexicalEntries.nodeId, input.nodeId));
+        const entryIds = [...new Set(relationRows.map((row) => row.lexicalEntryId))];
+        if (entryIds.length > 0) {
+          const stateRows = await tx
+            .select()
+            .from(userWordStates)
+            .where(and(eq(userWordStates.userId, userId), inArray(userWordStates.lexicalEntryId, entryIds)));
+          const currentStates = new Map(
+            stateRows.map((state) => [state.lexicalEntryId, { status: state.status, lastSeenAt: state.lastSeenAt }]),
+          );
+          const nextStates = applyVocabularyExposure(currentStates, entryIds, completedAt);
+          for (const entryId of entryIds) {
+            const nextState = nextStates.get(entryId);
+            if (!nextState) continue;
+            await tx
+              .insert(userWordStates)
+              .values({
+                userId,
+                lexicalEntryId: entryId,
+                status: nextState.status,
+                lastSeenAt: nextState.lastSeenAt,
+                updatedAt: completedAt,
+              })
+              .onDuplicateKeyUpdate({
+                set: {
+                  status: nextState.status,
+                  lastSeenAt: nextState.lastSeenAt,
+                  updatedAt: completedAt,
+                },
+              });
+          }
+        }
         await tx.insert(activityCompletions).values({
           clientEventId: input.clientEventId,
           userId,
@@ -844,6 +894,7 @@ export async function submitActivityData(
     }
   }
 
+  markMemoryVocabularyExposed(userId, input.nodeId, completedAt);
   const currentNodeProgress = getMemoryNodeProgress(userId).get(input.nodeId);
   const totalActivityCount = MVP_ACTIVITIES.filter((candidate) => candidate.nodeId === input.nodeId).length;
   const result = applyActivityCompletion(
