@@ -236,3 +236,12 @@ Não há `DATABASE_URL` configurada nesta sessão, não existe arquivo `.env` no
 ### Trabalho que pode continuar sem banco
 
 A próxima IA pode avançar em acessibilidade, estados de reconexão, onboarding, tema claro/escuro, importação do dataset lexical, áudio real, sequência diária, domínio por nó, conquistas e área administrativa. O modo de fallback em memória deve continuar sendo usado nos testes locais.
+
+## Ambiente local de desenvolvimento
+
+- [x] Provisionar MariaDB local temporário no sandbox para desenvolvimento.
+- [x] Aplicar as migrações `0000` a `0007` no banco local.
+- [x] Corrigir o índice de atividades para suportar múltiplas etapas por nó.
+- [x] Validar seed do MVP com uma trilha, cinco nós, onze entradas lexicais e onze atividades.
+- [x] Validar persistência de atividade, vocabulário, progresso, cartão SRS e avaliação.
+- [ ] Provisionar banco compartilhado de desenvolvimento/staging (ainda depende de provedor e `DATABASE_URL`).

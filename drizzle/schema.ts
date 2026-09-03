@@ -131,7 +131,7 @@ export const lessonActivities = mysqlTable(
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
   (table) => ({
-    nodeOrderIdx: uniqueIndex("lesson_activities_node_order_idx").on(table.nodeId, table.orderIndex),
+    nodeStepOrderIdx: uniqueIndex("lesson_activities_node_step_order_idx").on(table.nodeId, table.stepId, table.orderIndex),
   }),
 );
 
