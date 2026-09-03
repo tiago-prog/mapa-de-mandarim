@@ -32,6 +32,20 @@ export const learningPaths = mysqlTable("learning_paths", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+export const contentImports = mysqlTable("content_imports", {
+  id: varchar("id", { length: 64 }).primaryKey(),
+  pathId: varchar("pathId", { length: 64 }).notNull(),
+  contentVersion: varchar("contentVersion", { length: 64 }).notNull(),
+  status: mysqlEnum("status", ["draft", "review", "published", "archived"]).notNull().default("draft"),
+  payloadJson: text("payloadJson").notNull(),
+  validationErrorsJson: text("validationErrorsJson").notNull().default("[]"),
+  createdBy: int("createdBy").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  pathVersionIdx: uniqueIndex("content_imports_path_version_idx").on(table.pathId, table.contentVersion),
+}));
+
 export const learningNodes = mysqlTable(
   "learning_nodes",
   {
@@ -201,6 +215,7 @@ export const activityCompletions = mysqlTable("activity_completions", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 export type LearningPath = typeof learningPaths.$inferSelect;
+export type ContentImport = typeof contentImports.$inferSelect;
 export type LearningNode = typeof learningNodes.$inferSelect;
 export type LexicalEntry = typeof lexicalEntries.$inferSelect;
 export type LearningNodeStep = typeof learningNodeSteps.$inferSelect;

@@ -12,10 +12,12 @@ import {
   submitActivityData,
   getAudioAssetByHash,
   saveAudioAsset,
+  saveContentImportDraft,
 } from "./db";
 import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "./dictionary";
 import { audioAssetInputSchema } from "./domain/audio";
 import { generateAndUploadAudio, getAudioAssetPlan } from "./audio-service";
+import { contentImportId, validateContentImport } from "./domain/content-import";
 
 const getUserId = (userId: number | undefined) => userId ?? 0;
 const activityType = z.enum(["multiple_choice", "word_order", "context_choice", "fill_blank"]);
@@ -84,6 +86,32 @@ export const appRouter = router({
           }
           throw error;
         });
+      }),
+  }),
+
+  adminContent: router({
+    importDraft: adminProcedure
+      .input(z.object({ document: z.unknown() }))
+      .mutation(async ({ ctx, input }) => {
+        let document;
+        try {
+          document = validateContentImport(input.document);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            throw new TRPCError({ code: "BAD_REQUEST", message: error.issues.map((issue) => issue.message).join("; ") });
+          }
+          throw error;
+        }
+        const saved = await saveContentImportDraft({
+          id: contentImportId(document.path.id, document.contentVersion),
+          pathId: document.path.id,
+          contentVersion: document.contentVersion,
+          status: "draft",
+          payloadJson: JSON.stringify(document),
+          validationErrorsJson: "[]",
+          createdBy: ctx.user.id,
+        });
+        return { importId: saved?.id, status: saved?.status, pathId: saved?.pathId, contentVersion: saved?.contentVersion };
       }),
   }),
 

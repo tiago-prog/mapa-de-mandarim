@@ -4,6 +4,7 @@ import { drizzle } from "drizzle-orm/mysql2";
 import {
   activityCompletions,
   audioAssets,
+  contentImports,
   type InsertUser,
   learningNodeSteps,
   learningNodes,
@@ -479,6 +480,20 @@ export async function saveAudioAsset(asset: typeof audioAssets.$inferInsert) {
       errorMessage: asset.errorMessage,
     },
   });
+}
+
+export async function saveContentImportDraft(input: typeof contentImports.$inferInsert) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para guardar importação");
+  await db.insert(contentImports).values(input).onDuplicateKeyUpdate({
+    set: {
+      payloadJson: input.payloadJson,
+      validationErrorsJson: input.validationErrorsJson,
+      status: input.status,
+    },
+  });
+  const rows = await db.select().from(contentImports).where(eq(contentImports.id, input.id)).limit(1);
+  return rows[0];
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {
