@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { ENV } from "./env";
 import { registerStorageProxy } from "./storageProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -30,11 +31,20 @@ async function findAvailablePort(startPort: number = 3000): Promise<number> {
 async function startServer() {
   const app = express();
   const server = createServer(app);
+  const configuredOrigins = new Set([
+    ...(ENV.isProduction ? [] : ["http://localhost:8081", "http://127.0.0.1:8081"]),
+    process.env.EXPO_WEB_PREVIEW_URL,
+    ...(process.env.CORS_ALLOWED_ORIGINS ?? "").split(","),
+  ].map((origin) => origin?.trim()).filter((origin): origin is string => Boolean(origin)));
 
-  // Enable CORS for all routes - reflect the request origin to support credentials
   app.use((req, res, next) => {
     const origin = req.headers.origin;
     if (origin) {
+      res.header("Vary", "Origin");
+      if (!configuredOrigins.has(origin)) {
+        res.status(403).json({ error: "Origin not allowed" });
+        return;
+      }
       res.header("Access-Control-Allow-Origin", origin);
     }
     res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");

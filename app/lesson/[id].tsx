@@ -183,7 +183,7 @@ export default function LessonScreen() {
                 <Text className="text-xs font-semibold uppercase tracking-widest text-primary">{line.speaker}</Text>
                 <View className="flex-row items-center justify-between gap-3">
                   <Text className="flex-1 text-2xl font-bold text-foreground">{line.hanzi}</Text>
-                  <AudioButton text={line.hanzi} compact />
+                  <AudioButton text={line.hanzi} audioUrl={line.audio?.url} textHash={line.audio?.textHash} compact />
                 </View>
                 <Text className="text-sm text-primary">{line.pinyin}</Text>
                 {showTranslations ? <Text className="text-sm leading-5 text-muted">{line.translation}</Text> : null}
@@ -209,7 +209,7 @@ export default function LessonScreen() {
                   <Text className="mt-1 text-base text-primary">{entry.pinyin}</Text>
                 </View>
                 <View className="items-end gap-2">
-                  <AudioButton text={entry.hanzi} compact />
+                  <AudioButton text={entry.hanzi} audioUrl={entry.audio?.url} textHash={entry.audio?.textHash} compact />
                   <Text className="text-right text-sm font-semibold text-muted">{entry.meaningPtBr}</Text>
                 </View>
               </View>
@@ -239,7 +239,7 @@ export default function LessonScreen() {
               <View className="border-t border-border pt-3">
                 <View className="flex-row items-center justify-between gap-3">
                   <Text className="flex-1 text-lg font-semibold text-foreground">{pattern.exampleHanzi}</Text>
-                  <AudioButton text={pattern.exampleHanzi} compact />
+                  <AudioButton text={pattern.exampleHanzi} audioUrl={pattern.audio?.url} textHash={pattern.audio?.textHash} compact />
                 </View>
                 <Text className="mt-1 text-sm text-muted">{pattern.examplePtBr}</Text>
               </View>
@@ -299,7 +299,7 @@ export default function LessonScreen() {
                 {activity.hanzi ? (
                   <View className="items-center gap-2">
                     <Text className="text-center text-5xl font-bold text-background">{activity.hanzi}</Text>
-                    <AudioButton text={activity.hanzi} label="Ouvir pronúncia" />
+                    <AudioButton text={activity.hanzi} audioUrl={activity.audio?.url} textHash={activity.audio?.textHash} label="Ouvir pronúncia" />
                   </View>
                 ) : null}
                 {activity.pinyin ? <Text className="text-center text-base text-warning">{activity.pinyin}</Text> : null}

@@ -63,8 +63,9 @@ describe("learning vertical slice", () => {
     expect(firstSubmission.xpAwarded).toBe(15);
     expect(firstSubmission.node.progressPercent).toBe(33);
 
-    expect(await caller.dictionary.myWords({})).toEqual([]);
-    expect(await caller.review.getDue({ limit: 50 })).toEqual([]);
+    const earlyWords = await caller.dictionary.myWords({});
+    expect(earlyWords.map((entry) => entry.id)).toEqual(expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]));
+    expect(await caller.review.getDue({ limit: 50 })).toHaveLength(7);
 
     const secondSubmission = await caller.lesson.submitActivity({
       nodeId: "intro",

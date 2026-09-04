@@ -1,13 +1,13 @@
 # Estado atual do desenvolvimento — Mapa de Mandarim
 
-**Data do registo:** 2026-09-03  
+**Data do registo:** 2026-09-04
 **Objetivo:** entregar um ponto de continuidade claro para a próxima IA ou pessoa que assumir o desenvolvimento.
 
 ## Resumo executivo
 
 O Mapa de Mandarim já possui uma base funcional de aprendizagem móvel: mapa de progressão, nós, lições, atividades, missões e vocabulário inicial. A infraestrutura inicial de áudio também foi preparada, incluindo reprodução mobile, fallback TTS, cache local, modelo de assets e serviço server-side para futura geração neural.
 
-O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática de uma atividade identifica as palavras do nó, cria ou atualiza os estados pessoais e registra `lastSeenAt`. O SRS, os flashcards e a aba de revisão continuam como a próxima grande lacuna funcional.
+O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática de uma atividade identifica as palavras do nó, cria ou atualiza os estados pessoais e registra `lastSeenAt`. O SRS e a aba de revisão também estão ligados ao percurso, com persistência, idempotência e bloqueio transacional.
 
 ## O que está funcional
 
@@ -29,8 +29,8 @@ O ciclo entre **lição e vocabulário pessoal** já está integrado: a prática
 | Modelo de áudio | `audio_assets` com hash, metadados, estados e URL |
 | Azure Speech | Serviço server-side implementado, dependente de configuração |
 | Importação JSON | Contrato, validação e gravação de rascunhos implementados |
-| Área administrativa visual | Ainda não implementada |
-| Flashcards | Modelo, agenda e sessão visual de revisão implementados; integração com Hoje ainda pendente |
+| Área administrativa visual | Rascunhos, editor JSON, editor de palavras, áudio, validação e publicação materializada |
+| Flashcards | Modelo, agenda, sessão visual e integração com Hoje implementados |
 | SRS | Schema, motor determinístico, API e aba Revisar implementados |
 
 ## Arquitetura de conteúdo
@@ -114,9 +114,10 @@ O núcleo SRS está disponível e integrado ao percurso de aprendizagem:
 - Criação idempotente de cartões por usuário e entrada lexical.
 - Consulta de cartões vencidos, ativação automática de palavras `learning` e submissão transacional de avaliações pela API.
 - Histórico idempotente por `(userId, clientEventId)`, incluindo tratamento de duplicate key em avaliações concorrentes.
+- Avaliações SRS bloqueiam o cartão dentro da transação; conclusões de atividade bloqueiam o progresso do usuário e do nó.
 - Rotas pessoais de Today, lição, vocabulário, progresso e revisão ligadas a `personalProcedure`.
 - Fallback em memória restrito ao preview sem banco; ambientes persistentes propagam falhas de conexão e consulta.
-- Journal e snapshots Drizzle reconciliados para as migrações 0000–0008.
+- Journal e snapshots Drizzle reconciliados para as migrações 0000–0009.
 - Runner idempotente `pnpm db:migrate`, separado de `pnpm db:generate`.
 
 A sessão visual da aba Revisar já está disponível com revelação, áudio, avaliações, estados vazio/erro/loading e resumo de sessão. O próximo trabalho deve validar o ciclo persistido em MariaDB/CI e tornar a sincronização do cliente resiliente a reconexão.
@@ -242,13 +243,15 @@ Ela:
 6. Guarda o documento em `content_imports` com estado `draft`.
 7. É idempotente por trilha e versão.
 
+O painel administrativo visual já permite editar palavras, cadastrar `audioAssets`, gerar áudio, validar o documento e enviá-lo para revisão. A publicação executa uma transação que materializa trilha, nós, etapas, atividades, relações lexicais e metadados de áudio nas tabelas consumidas pelo aluno. O mapa seleciona a importação publicada mais recente.
+
 A tabela de staging é:
 
 ```text
 content_imports
 ```
 
-Ainda falta criar a interface visual para colar ou carregar JSON, mostrar os erros, pré-visualizar o conteúdo e iniciar a publicação.
+O painel ainda não possui versionamento imutável completo nem seleção de público por trilha. Essas capacidades ficam para uma etapa posterior.
 
 ## Próxima ordem recomendada
 
@@ -259,7 +262,7 @@ A próxima camada deve:
 - Configurar um banco dedicado de desenvolvimento/staging e executar `pnpm db:migrate`.
 - Rodar `RUN_DATABASE_TESTS=1 pnpm test server/srs.persistence.test.ts` com uma base descartável.
 - Confirmar replay idempotente, duas avaliações simultâneas, reinício da API e isolamento entre utilizadores.
-- Instrumentar erros de banco e observar reconexão antes de publicar.
+- O workflow `.github/workflows/ci.yml` executa migrações, testes persistentes, build e exportação web em MariaDB.
 
 ### 2. Resiliência do cliente
 
@@ -267,7 +270,7 @@ Depois da validação persistente, criar uma fila pequena de eventos com `client
 
 ### 3. Produto e conteúdo
 
-Com o ciclo persistente estável, avançar para onboarding, acessibilidade, tema claro/escuro, dataset lexical versionado, áudio real e central administrativa visual para importar, revisar e publicar conteúdo.
+Com o ciclo persistente estável, avançar para onboarding, acessibilidade, tema claro/escuro, dataset lexical versionado, fila offline resiliente e versionamento editorial completo.
 
 ## Comandos de validação
 

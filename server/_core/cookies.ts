@@ -1,4 +1,5 @@
 import type { CookieOptions, Request } from "express";
+import { ENV } from "./env";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
@@ -48,13 +49,16 @@ export function getSessionCookieOptions(
   req: Request,
 ): Pick<CookieOptions, "domain" | "httpOnly" | "path" | "sameSite" | "secure"> {
   const hostname = req.hostname;
-  const domain = getParentDomain(hostname);
+  const configuredDomain = process.env.SESSION_COOKIE_DOMAIN?.trim();
+  const domain = configuredDomain || (!ENV.isProduction ? getParentDomain(hostname) : undefined);
+  const secure = isSecureRequest(req) || ENV.isProduction;
+  const sameSite = process.env.COOKIE_SAMESITE === "none" && secure ? "none" : "lax";
 
   return {
     domain,
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: isSecureRequest(req),
+    sameSite,
+    secure,
   };
 }

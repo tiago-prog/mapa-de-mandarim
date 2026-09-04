@@ -6,7 +6,7 @@ const runDatabaseTests = process.env.RUN_DATABASE_TESTS === "1" && Boolean(proce
 const databaseDescribe = runDatabaseTests ? describe : describe.skip;
 
 function databaseTestUserId(): number {
-  return Number(process.env.SRS_TEST_USER_ID ?? 490001);
+  return Number(process.env.SRS_TEST_USER_ID ?? (490001 + (Date.now() % 1000000)));
 }
 
 databaseDescribe("srs persistence", () => {

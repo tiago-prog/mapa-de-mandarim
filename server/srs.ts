@@ -1,7 +1,8 @@
 import { and, asc, count, eq, lte } from "drizzle-orm";
+import { createHash } from "node:crypto";
 
 import { lexicalEntries, srsCards, srsReviews, userWordStates } from "../drizzle/schema";
-import { getDb } from "./db";
+import { ensureMvpSeed, getDb } from "./db";
 import {
   applySrsReview,
   createInitialSrsCard,
@@ -11,6 +12,8 @@ import {
 import { getMemoryWordStates } from "./word-state-memory";
 import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
 import { isMemoryFallbackEnabled } from "./runtime-mode";
+import { parseAudioJson } from "./domain/audio";
+import type { LexicalEntrySeed } from "./domain/learning";
 
 export type SrsCardWithEntry = SrsCardSnapshot & {
   hanzi: string;
@@ -18,6 +21,7 @@ export type SrsCardWithEntry = SrsCardSnapshot & {
   meaningPtBr: string;
   exampleHanzi: string;
   examplePtBr: string;
+  audio?: LexicalEntrySeed["audio"];
 };
 
 export type SrsReviewResult = {
@@ -52,8 +56,24 @@ function toSnapshot(row: typeof srsCards.$inferSelect): SrsCardSnapshot {
   };
 }
 
-function toCardWithEntry(card: SrsCardSnapshot, entry: typeof MVP_LEXICAL_ENTRIES[number]): SrsCardWithEntry {
+function toCardWithEntry(card: SrsCardSnapshot, entry: LexicalEntrySeed): SrsCardWithEntry {
   return { ...entry, ...card };
+}
+
+function toLexicalEntrySeed(entry: typeof lexicalEntries.$inferSelect): LexicalEntrySeed {
+  return {
+    id: entry.id,
+    hanzi: entry.hanzi,
+    pinyin: entry.pinyin,
+    meaningPtBr: entry.meaningPtBr,
+    exampleHanzi: entry.exampleHanzi,
+    examplePtBr: entry.examplePtBr,
+    audio: parseAudioJson(entry.audioJson),
+  };
+}
+
+function makeSrsReviewId(userId: number, clientEventId: string) {
+  return `review-${createHash("sha256").update(`${userId}:${clientEventId}`, "utf8").digest("hex").slice(0, 40)}`;
 }
 
 function isDuplicateKeyError(error: unknown): boolean {
@@ -96,6 +116,7 @@ export async function ensureSrsCard(userId: number, lexicalEntryId: string, now 
   const db = await getDb();
   if (db) {
     try {
+      await ensureMvpSeed(db);
       const entry = await db.select().from(lexicalEntries).where(eq(lexicalEntries.id, lexicalEntryId)).limit(1);
       if (!entry[0]) throw new Error("Palavra não encontrada");
 
@@ -183,7 +204,7 @@ export async function getDueSrsCards(userId: number, now = new Date(), limit = 2
         .where(and(eq(srsCards.userId, userId), lte(srsCards.dueAt, now)))
         .orderBy(asc(srsCards.dueAt))
         .limit(limit);
-      return rows.map(({ card, entry }) => toCardWithEntry(toSnapshot(card), entry));
+      return rows.map(({ card, entry }) => toCardWithEntry(toSnapshot(card), toLexicalEntrySeed(entry)));
     } catch (error) {
       if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory due cards:", error);
@@ -208,43 +229,51 @@ export async function submitSrsRating(input: {
   clientEventId: string;
   reviewedAt?: Date;
 }): Promise<SrsReviewResult> {
-  const reviewedAt = input.reviewedAt ?? new Date();
+  const requestedReviewedAt = input.reviewedAt ?? new Date();
+  const reviewedAt = new Date(Math.floor(requestedReviewedAt.getTime() / 1000) * 1000);
   const previousMemoryReview = memoryReviews.get(`${input.userId}:${input.clientEventId}`);
-  if (previousMemoryReview) return previousMemoryReview;
+  if (previousMemoryReview) {
+    if (previousMemoryReview.card.id !== input.cardId) throw new Error("clientEventId já foi usado em outro cartão");
+    return previousMemoryReview;
+  }
 
   const db = await getDb();
   if (db) {
     try {
-      const rows = await db.select().from(srsCards).where(and(eq(srsCards.id, input.cardId), eq(srsCards.userId, input.userId))).limit(1);
-      const currentRow = rows[0];
-      if (!currentRow) throw new Error("Cartão SRS não encontrado");
-      const currentCard = toSnapshot(currentRow);
-      const existingReviews = await db.select().from(srsReviews).where(and(eq(srsReviews.userId, input.userId), eq(srsReviews.clientEventId, input.clientEventId))).limit(1);
-      if (existingReviews[0]) return toPersistedReviewResult(currentCard, existingReviews[0]);
-      const nextCard = applySrsReview(currentCard, input.rating, reviewedAt);
-      const scheduleId = `review-${input.userId}-${input.clientEventId}`;
-      const result: SrsReviewResult = {
-        card: nextCard,
-        review: {
-          id: scheduleId,
-          clientEventId: input.clientEventId,
-          rating: input.rating,
-          previousBox: currentCard.box,
-          nextBox: nextCard.box,
-          previousDueAt: currentCard.dueAt,
-          nextDueAt: nextCard.dueAt,
-          reviewedAt,
-        },
-      };
+      let result: SrsReviewResult | undefined;
       await db.transaction(async (tx) => {
+        const rows = await tx.select().from(srsCards).where(and(eq(srsCards.id, input.cardId), eq(srsCards.userId, input.userId))).limit(1).for("update");
+        const currentRow = rows[0];
+        if (!currentRow) throw new Error("Cartão SRS não encontrado");
+        const currentCard = toSnapshot(currentRow);
+        const existingReviews = await tx.select().from(srsReviews).where(and(eq(srsReviews.userId, input.userId), eq(srsReviews.clientEventId, input.clientEventId))).limit(1);
+        if (existingReviews[0]) {
+          if (existingReviews[0].cardId !== input.cardId) throw new Error("clientEventId já foi usado em outro cartão");
+          result = toPersistedReviewResult(currentCard, existingReviews[0]);
+          return;
+        }
+        const nextCard = applySrsReview(currentCard, input.rating, reviewedAt);
+        result = {
+          card: nextCard,
+          review: {
+            id: makeSrsReviewId(input.userId, input.clientEventId),
+            clientEventId: input.clientEventId,
+            rating: input.rating,
+            previousBox: currentCard.box,
+            nextBox: nextCard.box,
+            previousDueAt: currentCard.dueAt,
+            nextDueAt: nextCard.dueAt,
+            reviewedAt,
+          },
+        };
         await tx.update(srsCards).set({
-          box: nextCard.box,
-          dueAt: nextCard.dueAt,
-          intervalDays: nextCard.intervalDays,
-          easeFactor: String(nextCard.easeFactor),
-          reviewCount: nextCard.reviewCount,
-          lapseCount: nextCard.lapseCount,
-          lastReviewedAt: nextCard.lastReviewedAt,
+          box: result.card.box,
+          dueAt: result.card.dueAt,
+          intervalDays: result.card.intervalDays,
+          easeFactor: String(result.card.easeFactor),
+          reviewCount: result.card.reviewCount,
+          lapseCount: result.card.lapseCount,
+          lastReviewedAt: result.card.lastReviewedAt,
           updatedAt: reviewedAt,
         }).where(and(eq(srsCards.id, input.cardId), eq(srsCards.userId, input.userId)));
         await tx.insert(srsReviews).values({
@@ -260,6 +289,7 @@ export async function submitSrsRating(input: {
           reviewedAt,
         });
       });
+      if (!result) throw new Error("Revisão SRS não foi registrada");
       return result;
     } catch (error) {
       if (error instanceof Error && error.message === "Cartão SRS não encontrado") throw error;
@@ -274,7 +304,10 @@ export async function submitSrsRating(input: {
           .from(srsCards)
           .where(and(eq(srsCards.id, input.cardId), eq(srsCards.userId, input.userId)))
           .limit(1);
-        if (replayReviews[0] && latestCards[0]) return toPersistedReviewResult(toSnapshot(latestCards[0]), replayReviews[0]);
+        if (replayReviews[0] && latestCards[0]) {
+          if (replayReviews[0].cardId !== input.cardId) throw new Error("clientEventId já foi usado em outro cartão");
+          return toPersistedReviewResult(toSnapshot(latestCards[0]), replayReviews[0]);
+        }
       }
       if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[SRS] Falling back to in-memory rating:", error);
@@ -287,7 +320,7 @@ export async function submitSrsRating(input: {
   const result: SrsReviewResult = {
     card: nextCard,
     review: {
-      id: `review-${input.userId}-${input.clientEventId}`,
+      id: makeSrsReviewId(input.userId, input.clientEventId),
       clientEventId: input.clientEventId,
       rating: input.rating,
       previousBox: currentCard.box,

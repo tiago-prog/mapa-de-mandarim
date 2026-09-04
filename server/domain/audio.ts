@@ -11,6 +11,7 @@ export const audioSpecSchema = z.object({
   required: z.boolean().default(false),
   source: z.enum(["azure", "uploaded", "tts", "none"]).default("none"),
   url: z.string().trim().url().nullable().default(null),
+  textHash: z.string().trim().regex(/^[a-f0-9]{32}$/i).nullable().optional(),
   language: z.string().trim().min(2).max(16).default("zh-CN"),
   voice: z.string().trim().min(1).max(128).default("zh-CN-XiaoxiaoNeural"),
   rate: z.number().min(0.5).max(2).default(0.85),
@@ -64,6 +65,20 @@ export function audioTextHash(input: AudioHashInput) {
     input.generatorVersion,
   ].join("\u001f");
   return createHash("md5").update(canonical, "utf8").digest("hex");
+}
+
+export function parseAudioSpec(input: unknown): AudioSpec | undefined {
+  const parsed = audioSpecSchema.safeParse(input);
+  return parsed.success && parsed.data.source !== "none" ? parsed.data : undefined;
+}
+
+export function parseAudioJson(value: string | null | undefined): AudioSpec | undefined {
+  if (!value || value === "{}") return undefined;
+  try {
+    return parseAudioSpec(JSON.parse(value));
+  } catch {
+    return undefined;
+  }
 }
 
 export function validateLessonAudioImport(input: unknown) {

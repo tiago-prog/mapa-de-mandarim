@@ -1,15 +1,12 @@
 import * as Linking from "expo-linking";
 import * as ReactNative from "react-native";
 
-// Extract scheme from bundle ID (last segment timestamp, prefixed with "manus")
-// e.g., "space.manus.my.app.t20240115103045" -> "manus20240115103045"
-const bundleId = "com.app.mapamandarim";
-const timestamp = bundleId.split(".").pop()?.replace(/^t/, "") ?? "";
-const schemeFromBundleId = `manus${timestamp}`;
+// Keep the native scheme stable so the server can validate signed OAuth state.
+const schemeFromBundleId = "manusmapamandarim";
 
 const env = {
   apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
-  deepLinkScheme: schemeFromBundleId,
+  deepLinkScheme: process.env.EXPO_PUBLIC_OAUTH_SCHEME ?? schemeFromBundleId,
 };
 
 export const API_BASE_URL = env.apiBaseUrl;

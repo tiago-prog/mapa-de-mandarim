@@ -21,8 +21,13 @@ function isGoogleConfigured() {
   return Boolean(ENV.googleClientId && ENV.googleClientSecret && ENV.googleRedirectUri && ENV.cookieSecret);
 }
 
-function allowedReturnUrl(value: string) {
-  if (value.startsWith("manus")) return true;
+function isNativeReturnUrl(value: string) {
+  const mobileScheme = process.env.EXPO_MOBILE_REDIRECT_SCHEME || "manusmapamandarim";
+  return value.startsWith(`${mobileScheme}://`);
+}
+
+export function allowedReturnUrl(value: string) {
+  if (isNativeReturnUrl(value)) return true;
   try {
     const url = new URL(value);
     const allowed = new Set([
@@ -68,6 +73,14 @@ async function getGoogleUser(accessToken: string): Promise<GoogleUser> {
   return (await response.json()) as GoogleUser;
 }
 
+async function createGoogleSession(code: string) {
+  const token = await exchangeCode(code);
+  const googleUser = await getGoogleUser(token.access_token || "");
+  const user = await syncGoogleUser(googleUser);
+  const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || user.email || "Google user", expiresInMs: ONE_YEAR_MS });
+  return { sessionToken, user };
+}
+
 async function syncGoogleUser(googleUser: GoogleUser) {
   if (!googleUser.sub || !googleUser.email) throw new Error("Google account has no stable identity or email");
   const openId = `google:${googleUser.sub}`;
@@ -105,15 +118,33 @@ export function registerOAuthRoutes(app: Express) {
     if (!code || !state) { res.status(400).json({ error: "code and state are required" }); return; }
     try {
       const returnTo = await readState(state);
-      const token = await exchangeCode(code);
-      const googleUser = await getGoogleUser(token.access_token || "");
-      const user = await syncGoogleUser(googleUser);
-      const sessionToken = await sdk.createSessionToken(user.openId, { name: user.name || user.email || "Google user", expiresInMs: ONE_YEAR_MS });
+      const { sessionToken } = await createGoogleSession(code);
       res.cookie(COOKIE_NAME, sessionToken, { ...getSessionCookieOptions(req), maxAge: ONE_YEAR_MS });
       res.redirect(302, returnTo);
     } catch (error) {
       console.error("[Google OAuth] Callback failed", error);
       res.status(500).json({ error: "Não foi possível concluir o login Google." });
+    }
+  });
+
+  app.post("/api/oauth/mobile", async (req: Request, res: Response) => {
+    const code = typeof req.body?.code === "string" ? req.body.code : undefined;
+    const state = typeof req.body?.state === "string" ? req.body.state : undefined;
+    if (!code || !state) {
+      res.status(400).json({ error: "code and state are required" });
+      return;
+    }
+    try {
+      const returnTo = await readState(state);
+      if (!isNativeReturnUrl(returnTo)) {
+        res.status(400).json({ error: "Native OAuth callback is required" });
+        return;
+      }
+      const { sessionToken, user } = await createGoogleSession(code);
+      res.json({ app_session_id: sessionToken, user: userResponse(user) });
+    } catch (error) {
+      console.error("[Google OAuth] Native exchange failed", error instanceof Error ? error.message : "unknown error");
+      res.status(401).json({ error: "Não foi possível concluir o login Google no aplicativo." });
     }
   });
 

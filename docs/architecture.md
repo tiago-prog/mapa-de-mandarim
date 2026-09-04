@@ -24,7 +24,7 @@ As regras de aprendizagem não devem depender da interface. O mapa, os flashcard
 | Backend | Node.js + TypeScript | Serviço da aplicação |
 | Persistência | Drizzle ORM + MySQL/TiDB do scaffold | Dados sincronizados do usuário |
 | Sessão | Google OAuth 2.0 + JWT local | Autenticação do MVP |
-| Produção | Google OAuth com PKCE no mobile | Evolução do mesmo provedor |
+| Produção | Google OAuth com Authorization Code e state assinado no mobile | PKCE permanece como evolução do mesmo provedor |
 | Dados locais | AsyncStorage e fila pequena de eventos | Preferências, cache e respostas pendentes |
 | Áudio | expo-audio | Pronúncia e atividades de escuta |
 | Testes | TypeScript, lint, Vitest e testes de componentes | Proteção do domínio e dos fluxos críticos |
@@ -54,7 +54,7 @@ server/
     progressionRepository.ts
 ```
 
-Os routers validam entrada, autenticam o usuário e delegam para o domínio. O cálculo de domínio, próxima revisão, XP e desbloqueio deve ficar em funções puras e testáveis.
+Os routers validam entrada, autenticam o usuário e delegam para o domínio. O cálculo de domínio, próxima revisão, XP e desbloqueio deve ficar em funções puras e testáveis. A publicação administrativa valida o documento e materializa a versão nas tabelas de conteúdo dentro de uma transação.
 
 ## Entidades do MVP
 
@@ -62,7 +62,7 @@ Os routers validam entrada, autenticam o usuário e delegam para o domínio. O c
 |---|---|
 | `lexicalEntries` | Dados estáveis de cada palavra ou expressão |
 | `userWordStates` | Relação pessoal do usuário com cada entrada |
-| `learningPaths` | Trilhas publicadas |
+| `learningPaths` | Trilha ativa materializada a partir do conteúdo publicado |
 | `learningNodes` | Competências dentro de uma trilha |
 | `nodeLexicalEntries` | Palavras relacionadas a um nó |
 | `nodePrerequisites` | Dependências entre nós |

@@ -147,7 +147,7 @@ export default function ReviewScreen() {
 
             <View className="items-center gap-3 py-3">
               <Text className="text-6xl font-bold text-foreground">{currentCard.hanzi}</Text>
-              <AudioButton text={currentCard.hanzi} label="Ouvir pronúncia" />
+              <AudioButton text={currentCard.hanzi} audioUrl={currentCard.audio?.url} textHash={currentCard.audio?.textHash} label="Ouvir pronúncia" />
               <Text className="text-center text-sm leading-5 text-muted">Leia o hanzi e tente lembrar o significado antes de revelar.</Text>
             </View>
 

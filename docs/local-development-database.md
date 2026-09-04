@@ -78,7 +78,7 @@ A URL real não deve ser gravada no repositório, na documentação ou em commit
 
 As migrações oficiais são aplicadas por `pnpm db:migrate`, que percorre todos os arquivos `drizzle/*.sql` em ordem lexicográfica e registra o que já foi executado na tabela `_mapa_local_migrations`. A execução é idempotente e pode ser usada no banco local ou em staging. `pnpm db:generate` serve somente para gerar uma nova diferença de schema; o SQL gerado deve ser revisado e versionado antes de ser aplicado. Os instaladores de Ubuntu e Windows mantêm seu controle local `_mapa_local_migrations` para o provisionamento inicial.
 
-A migração `0007_lesson_activity_step_order.sql` corrige o índice das atividades para permitir que etapas diferentes do mesmo nó usem o mesmo `orderIndex`. Em uma instalação nova, as migrações devem ser aplicadas de `0000` até a mais recente. O runner registra nomes de arquivos, portanto não deve haver renomeação de uma migração já aplicada.
+A migração `0007_lesson_activity_step_order.sql` corrige o índice das atividades para permitir que etapas diferentes do mesmo nó usem o mesmo `orderIndex`. A migração `0008_srs_review_user_event_scope.sql` torna o evento SRS único por usuário. A migração `0009_batch_fixes.sql` persiste metadados de áudio, amplia respostas de atividades e torna o evento de atividade único por usuário. Em uma instalação nova, as migrações devem ser aplicadas de `0000` até a mais recente. O runner registra nomes de arquivos, portanto não deve haver renomeação de uma migração já aplicada.
 
 ## Validação realizada
 

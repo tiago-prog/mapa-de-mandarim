@@ -16,6 +16,8 @@ import {
   listContentImports,
   getContentImport,
   updateContentImportStatus,
+  updateContentImportValidation,
+  publishContentImport,
 } from "./db";
 import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "./dictionary";
 import { audioAssetInputSchema } from "./domain/audio";
@@ -168,6 +170,19 @@ export const appRouter = router({
         const saved = await getContentImport(input.id);
         if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
         if (saved.status === "archived" && input.status !== "draft") throw new TRPCError({ code: "BAD_REQUEST", message: "Conteúdo arquivado deve ser reaberto como rascunho" });
+        if (saved.status === "published" && input.status !== "published") throw new TRPCError({ code: "BAD_REQUEST", message: "Conteúdo publicado é imutável; crie uma nova versão" });
+        if (input.status === "published") {
+          if (saved.status !== "review" && saved.status !== "published") throw new TRPCError({ code: "BAD_REQUEST", message: "Valide o conteúdo e envie-o para revisão antes de publicar" });
+          if (saved.status === "published") return saved;
+          try {
+            return await publishContentImport(input.id);
+          } catch (error) {
+            if (error instanceof Error && error.message.startsWith("Conteúdo inválido:")) {
+              throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+            }
+            throw error;
+          }
+        }
         return updateContentImportStatus(input.id, input.status);
       }),
     validate: adminProcedure
@@ -175,12 +190,15 @@ export const appRouter = router({
       .mutation(async ({ input }) => {
         const saved = await getContentImport(input.id);
         if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        if (saved.status === "published") throw new TRPCError({ code: "BAD_REQUEST", message: "Conteúdo publicado é imutável" });
         try {
           const document = validateContentImport(JSON.parse(saved.payloadJson));
+          await updateContentImportValidation(input.id, []);
           await updateContentImportStatus(input.id, "review");
           return { valid: true, issues: [], document };
         } catch (error) {
           const issues = error instanceof z.ZodError ? error.issues.map((issue) => issue.message) : ["JSON inválido"];
+          await updateContentImportValidation(input.id, issues);
           return { valid: false, issues };
         }
       }),
@@ -220,22 +238,28 @@ export const appRouter = router({
         const assets = document.path.nodes.flatMap((node) => node.audioAssets);
         let generated = 0;
         let reused = 0;
-        const audioById = new Map<string, { url: string | null; source: "azure" }>();
+        const audioById = new Map<string, { url: string | null; source: "azure"; textHash: string }>();
         for (const asset of assets) {
           const inputAsset = { ...asset, audio: { ...asset.audio, source: "azure" as const, url: null } };
           const plan = getAudioAssetPlan(inputAsset);
           const existing = await getAudioAssetByHash(plan.textHash);
           if (existing?.status === "ready") {
             reused += 1;
-            audioById.set(asset.id, { url: existing.publicUrl, source: "azure" });
+            audioById.set(asset.id, { url: existing.publicUrl, source: "azure", textHash: plan.textHash });
             continue;
           }
-          const databasePlan = { ...plan, rate: String(plan.rate) };
+          const databasePlan = { ...plan, id: existing?.id ?? plan.id, rate: String(plan.rate) };
           await saveAudioAsset({ ...databasePlan, status: "processing", errorMessage: null });
-          const generatedAsset = await generateAndUploadAudio(inputAsset);
-          await saveAudioAsset({ ...plan, ...generatedAsset, id: plan.id, rate: String(generatedAsset.rate) });
+          let generatedAsset;
+          try {
+            generatedAsset = await generateAndUploadAudio(inputAsset);
+          } catch (error) {
+            await saveAudioAsset({ ...databasePlan, status: "failed", storageKey: null, publicUrl: null, durationMs: null, fileSizeBytes: null, errorMessage: error instanceof Error ? error.message : "Falha desconhecida na geração de áudio" });
+            throw error;
+          }
+          await saveAudioAsset({ ...plan, ...generatedAsset, id: databasePlan.id, rate: String(generatedAsset.rate) });
           generated += 1;
-          audioById.set(asset.id, { url: generatedAsset.publicUrl, source: "azure" });
+          audioById.set(asset.id, { url: generatedAsset.publicUrl, source: "azure", textHash: generatedAsset.textHash });
         }
         const updatedDocument = {
           ...document,
@@ -243,6 +267,14 @@ export const appRouter = router({
             ...document.path,
             nodes: document.path.nodes.map((node) => ({
               ...node,
+              lexicalEntries: node.lexicalEntries.map((entry) => {
+                const relatedAsset = node.audioAssets.find((asset) => asset.lexicalEntryId === entry.id);
+                return relatedAsset ? { ...entry, audio: { ...(entry.audio ?? {}), ...(audioById.get(relatedAsset.id) ?? {}) } } : entry;
+              }),
+              activities: node.activities.map((activity) => {
+                const relatedAsset = node.audioAssets.find((asset) => asset.contentId === activity.id);
+                return relatedAsset ? { ...activity, audio: { ...(activity.audio ?? {}), ...(audioById.get(relatedAsset.id) ?? {}) } } : activity;
+              }),
               audioAssets: node.audioAssets.map((asset) => ({ ...asset, audio: { ...asset.audio, ...(audioById.get(asset.id) ?? {}) } })),
             })),
           },

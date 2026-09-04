@@ -19,14 +19,10 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
   //   Cookie is set on backend domain via POST /api/auth/session after receiving token via postMessage
   if (Platform.OS !== "web") {
     const sessionToken = await Auth.getSessionToken();
-    console.log("[API] apiCall:", {
-      endpoint,
-      hasToken: !!sessionToken,
-      method: options.method || "GET",
-    });
+    if (__DEV__) console.log("[API] apiCall:", { endpoint, hasToken: !!sessionToken, method: options.method || "GET" });
     if (sessionToken) {
       headers["Authorization"] = `Bearer ${sessionToken}`;
-      console.log("[API] Authorization header added");
+      if (__DEV__) console.log("[API] Authorization header added");
     }
   } else {
     console.log("[API] apiCall:", { endpoint, platform: "web", method: options.method || "GET" });
@@ -37,29 +33,21 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
   const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
   const url = baseUrl ? `${cleanBaseUrl}${cleanEndpoint}` : endpoint;
-  console.log("[API] Full URL:", url);
+  if (__DEV__) console.log("[API] Full URL:", url);
 
   try {
-    console.log("[API] Making request...");
+    if (__DEV__) console.log("[API] Making request...");
     const response = await fetch(url, {
       ...options,
       headers,
       credentials: "include",
     });
 
-    console.log("[API] Response status:", response.status, response.statusText);
-    const responseHeaders = Object.fromEntries(response.headers.entries());
-    console.log("[API] Response headers:", responseHeaders);
-
-    // Check if Set-Cookie header is present (cookies are automatically handled in React Native)
-    const setCookie = response.headers.get("Set-Cookie");
-    if (setCookie) {
-      console.log("[API] Set-Cookie header received:", setCookie);
-    }
+    if (__DEV__) console.log("[API] Response status:", response.status, response.statusText);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("[API] Error response:", errorText);
+      if (__DEV__) console.error("[API] Error response status:", response.status);
       let errorMessage = errorText;
       try {
         const errorJson = JSON.parse(errorText);
@@ -73,15 +61,15 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
     const contentType = response.headers.get("content-type");
     if (contentType && contentType.includes("application/json")) {
       const data = await response.json();
-      console.log("[API] JSON response received");
+      if (__DEV__) console.log("[API] JSON response received");
       return data as T;
     }
 
     const text = await response.text();
-    console.log("[API] Text response received");
+    if (__DEV__) console.log("[API] Text response received");
     return (text ? JSON.parse(text) : {}) as T;
   } catch (error) {
-    console.error("[API] Request failed:", error);
+    if (__DEV__) console.error("[API] Request failed:", error instanceof Error ? error.message : "unknown error");
     if (error instanceof Error) {
       throw error;
     }
@@ -95,20 +83,14 @@ export async function exchangeOAuthCode(
   code: string,
   state: string,
 ): Promise<{ sessionToken: string; user: any }> {
-  console.log("[API] exchangeOAuthCode called");
-  // Use GET with query params
-  const params = new URLSearchParams({ code, state });
-  const endpoint = `/api/oauth/mobile?${params.toString()}`;
-  console.log("[API] Calling OAuth mobile endpoint:", endpoint);
-  const result = await apiCall<{ app_session_id: string; user: any }>(endpoint);
+  const result = await apiCall<{ app_session_id: string; user: any }>("/api/oauth/mobile", {
+    method: "POST",
+    body: JSON.stringify({ code, state }),
+  });
 
   // Convert app_session_id to sessionToken for compatibility
   const sessionToken = result.app_session_id;
-  console.log("[API] OAuth exchange result:", {
-    hasSessionToken: !!sessionToken,
-    hasUser: !!result.user,
-    sessionToken: sessionToken ? `${sessionToken.substring(0, 50)}...` : null,
-  });
+  if (__DEV__) console.log("[API] OAuth exchange result:", { hasSessionToken: !!sessionToken, hasUser: !!result.user });
 
   return {
     sessionToken,

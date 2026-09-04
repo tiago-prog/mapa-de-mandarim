@@ -42,4 +42,36 @@ describe("importação de conteúdo", () => {
   it("gera um ID estável para a mesma trilha e versão", () => {
     expect(contentImportId("presentations", "2026.09.03")).toBe("import-presentations-2026-09-03");
   });
+
+  it("rejeita atividade ligada a outro nó ou etapa", () => {
+    const otherNode = {
+      ...validDocument.path.nodes[0],
+      id: "other",
+      nodeId: undefined,
+      pathId: "presentations",
+      orderIndex: 1,
+      steps: [{ ...validDocument.path.nodes[0].steps[0], id: "other-vocab" }],
+      activities: [],
+    };
+    expect(() => validateContentImport({
+      ...validDocument,
+      path: {
+        ...validDocument.path,
+        nodes: [validDocument.path.nodes[0], { ...otherNode, steps: [{ ...otherNode.steps[0], content: { kind: "practice", instruction: "Pratique", activityIds: ["intro-choice"] } }] }],
+      },
+    })).toThrow(/outro nó ou etapa/);
+  });
+
+  it("rejeita resposta incompatível com o tipo da atividade", () => {
+    expect(() => validateContentImport({
+      ...validDocument,
+      path: {
+        ...validDocument.path,
+        nodes: [{
+          ...validDocument.path.nodes[0],
+          activities: [{ ...validDocument.path.nodes[0].activities[0], correctOptionId: "missing" }],
+        }],
+      },
+    })).toThrow(/opção correta existente/);
+  });
 });

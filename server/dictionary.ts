@@ -5,6 +5,8 @@ import { MVP_LEXICAL_ENTRIES } from "./domain/learning";
 import { getDb } from "./db";
 import { getMemoryWordStates } from "./word-state-memory";
 import { isMemoryFallbackEnabled } from "./runtime-mode";
+import { parseAudioJson } from "./domain/audio";
+import type { AudioSpec } from "./domain/audio";
 
 export type WordStatus = "new" | "known" | "learning";
 
@@ -15,6 +17,7 @@ export type DictionaryEntry = {
   meaningPtBr: string;
   exampleHanzi: string;
   examplePtBr: string;
+  audio?: AudioSpec;
   status: WordStatus;
   lastSeenAt: Date | null;
 };
@@ -30,6 +33,7 @@ function toDictionaryEntry(
     meaningPtBr: entry.meaningPtBr,
     exampleHanzi: entry.exampleHanzi,
     examplePtBr: entry.examplePtBr,
+    audio: parseAudioJson(entry.audioJson),
     status: state?.status ?? "new",
     lastSeenAt: state?.lastSeenAt ?? null,
   };

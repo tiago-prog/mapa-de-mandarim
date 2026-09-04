@@ -23,7 +23,7 @@ export function useAuth(options?: UseAuthOptions) {
       if (Platform.OS === "web") {
         console.log("[useAuth] Web platform: fetching user from API...");
         const apiUser = await Api.getMe();
-        console.log("[useAuth] API user response:", apiUser);
+      if (__DEV__) console.log("[useAuth] API user response:", apiUser ? "authenticated" : "anonymous");
 
         if (apiUser) {
           const userInfo: Auth.User = {
@@ -38,7 +38,7 @@ export function useAuth(options?: UseAuthOptions) {
           setUser(userInfo);
           // Cache user info in localStorage for faster subsequent loads
           await Auth.setUserInfo(userInfo);
-          console.log("[useAuth] Web user set from API:", userInfo);
+          if (__DEV__) console.log("[useAuth] Web user set from API");
         } else {
           console.log("[useAuth] Web: No authenticated user from API");
           setUser(null);
@@ -50,10 +50,7 @@ export function useAuth(options?: UseAuthOptions) {
       // Native platform: use token-based auth
       console.log("[useAuth] Native platform: checking for session token...");
       const sessionToken = await Auth.getSessionToken();
-      console.log(
-        "[useAuth] Session token:",
-        sessionToken ? `present (${sessionToken.substring(0, 20)}...)` : "missing",
-      );
+      if (__DEV__) console.log("[useAuth] Session token:", sessionToken ? "present" : "missing");
       if (!sessionToken) {
         console.log("[useAuth] No session token, setting user to null");
         setUser(null);
@@ -62,7 +59,7 @@ export function useAuth(options?: UseAuthOptions) {
 
       // Use cached user info for native (token validates the session)
       const cachedUser = await Auth.getUserInfo();
-      console.log("[useAuth] Cached user:", cachedUser);
+      if (__DEV__) console.log("[useAuth] Cached user:", cachedUser ? "present" : "missing");
       if (cachedUser) {
         console.log("[useAuth] Using cached user info");
         setUser(cachedUser);

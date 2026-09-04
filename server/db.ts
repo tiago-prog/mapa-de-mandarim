@@ -41,6 +41,8 @@ import { createInitialSrsCard } from "./domain/srs";
 import { getMemoryWordStates } from "./word-state-memory";
 import { ENV } from "./_core/env";
 import { databaseRequiredError, isMemoryFallbackEnabled } from "./runtime-mode";
+import { parseAudioJson } from "./domain/audio";
+import { validateContentImport, type ContentImportDocument } from "./domain/content-import";
 
 let _db: ReturnType<typeof drizzle> | null = null;
 let mvpSeedPromise: Promise<void> | null = null;
@@ -188,6 +190,18 @@ function toNodeSeed(row: typeof learningNodes.$inferSelect): LearningNodeSeed {
   };
 }
 
+function toLexicalEntrySeed(row: typeof lexicalEntries.$inferSelect): LexicalEntrySeed {
+  return {
+    id: row.id,
+    hanzi: row.hanzi,
+    pinyin: row.pinyin,
+    meaningPtBr: row.meaningPtBr,
+    exampleHanzi: row.exampleHanzi,
+    examplePtBr: row.examplePtBr,
+    audio: parseAudioJson(row.audioJson),
+  };
+}
+
 function toStepSeed(row: typeof learningNodeSteps.$inferSelect): LearningNodeStepSeed {
   return {
     id: row.id,
@@ -222,6 +236,7 @@ function toActivitySeed(row: typeof lessonActivities.$inferSelect): LessonActivi
     expectedAnswer: row.expectedAnswer,
     feedbackCorrect: row.feedbackCorrect,
     feedbackIncorrect: row.feedbackIncorrect,
+    audio: parseAudioJson(row.audioJson),
   };
 }
 
@@ -285,7 +300,17 @@ async function seedMvpData(db: ReturnType<typeof drizzle>): Promise<void> {
   for (const entry of MVP_LEXICAL_ENTRIES) {
     await db
       .insert(lexicalEntries)
-      .values({ ...entry, createdAt: now, updatedAt: now })
+      .values({
+        id: entry.id,
+        hanzi: entry.hanzi,
+        pinyin: entry.pinyin,
+        meaningPtBr: entry.meaningPtBr,
+        exampleHanzi: entry.exampleHanzi,
+        examplePtBr: entry.examplePtBr,
+        audioJson: JSON.stringify(entry.audio ?? {}),
+        createdAt: now,
+        updatedAt: now,
+      })
       .onDuplicateKeyUpdate({
         set: {
           hanzi: entry.hanzi,
@@ -293,6 +318,7 @@ async function seedMvpData(db: ReturnType<typeof drizzle>): Promise<void> {
           meaningPtBr: entry.meaningPtBr,
           exampleHanzi: entry.exampleHanzi,
           examplePtBr: entry.examplePtBr,
+          audioJson: JSON.stringify(entry.audio ?? {}),
           updatedAt: now,
         },
       });
@@ -365,6 +391,7 @@ async function seedMvpData(db: ReturnType<typeof drizzle>): Promise<void> {
         correctOptionId: activity.correctOptionId,
         feedbackCorrect: activity.feedbackCorrect,
         feedbackIncorrect: activity.feedbackIncorrect,
+        audioJson: JSON.stringify(activity.audio ?? {}),
         createdAt: now,
         updatedAt: now,
       })
@@ -389,15 +416,18 @@ async function seedMvpData(db: ReturnType<typeof drizzle>): Promise<void> {
           correctOptionId: activity.correctOptionId,
           feedbackCorrect: activity.feedbackCorrect,
           feedbackIncorrect: activity.feedbackIncorrect,
+          audioJson: JSON.stringify(activity.audio ?? {}),
           updatedAt: now,
         },
       });
   }
 }
 
-async function ensureMvpSeed(db: ReturnType<typeof drizzle>): Promise<void> {
+export async function ensureMvpSeed(db: ReturnType<typeof drizzle>): Promise<void> {
   if (!mvpSeedPromise) {
-    mvpSeedPromise = seedMvpData(db).catch((error) => {
+    mvpSeedPromise = db.select({ id: learningPaths.id }).from(learningPaths).where(eq(learningPaths.id, MVP_PATH.id)).limit(1).then(async (rows) => {
+      if (rows.length === 0) await seedMvpData(db);
+    }).catch((error) => {
       mvpSeedPromise = null;
       throw error;
     });
@@ -422,14 +452,23 @@ function progressFromRows(rows: Array<typeof userNodeProgress.$inferSelect>) {
 
 async function getDbMapData(db: ReturnType<typeof drizzle>, userId: number): Promise<LearningMapData> {
   await ensureMvpSeed(db);
+  const publishedRows = await db.select({ pathId: contentImports.pathId })
+    .from(contentImports)
+    .where(eq(contentImports.status, "published"))
+    .orderBy(desc(contentImports.updatedAt))
+    .limit(1);
+  const activePathId = publishedRows[0]?.pathId ?? MVP_PATH.id;
   const [pathRows, nodeRows, stepRows, activityRows, progressRows, userProgressRows] = await Promise.all([
-    db.select().from(learningPaths).where(eq(learningPaths.id, MVP_PATH.id)).limit(1),
-    db.select().from(learningNodes).where(eq(learningNodes.pathId, MVP_PATH.id)).orderBy(asc(learningNodes.orderIndex)),
+    db.select().from(learningPaths).where(eq(learningPaths.id, activePathId)).limit(1),
+    db.select().from(learningNodes).where(eq(learningNodes.pathId, activePathId)).orderBy(asc(learningNodes.orderIndex)),
     db.select().from(learningNodeSteps).orderBy(asc(learningNodeSteps.orderIndex)),
     db.select().from(lessonActivities).orderBy(asc(lessonActivities.orderIndex)),
     db.select().from(userNodeProgress).where(eq(userNodeProgress.userId, userId)),
     db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1),
   ]);
+  const activeNodeIds = new Set(nodeRows.map((row) => row.id));
+  const activeStepRows = stepRows.filter((row) => activeNodeIds.has(row.nodeId));
+  const activeActivityRows = activityRows.filter((row) => activeNodeIds.has(row.nodeId));
   const progressByNodeId = progressFromRows(progressRows);
   const storedProgress = userProgressRows[0];
   const progress: UserProgressSnapshot = {
@@ -438,9 +477,9 @@ async function getDbMapData(db: ReturnType<typeof drizzle>, userId: number): Pro
     completedNodeCount: storedProgress?.completedNodeCount ?? 0,
   };
   const stepCountByNodeId = new Map<string, number>();
-  for (const row of stepRows) stepCountByNodeId.set(row.nodeId, (stepCountByNodeId.get(row.nodeId) ?? 0) + 1);
+  for (const row of activeStepRows) stepCountByNodeId.set(row.nodeId, (stepCountByNodeId.get(row.nodeId) ?? 0) + 1);
   const activityCountByNodeId = new Map<string, number>();
-  for (const row of activityRows) activityCountByNodeId.set(row.nodeId, (activityCountByNodeId.get(row.nodeId) ?? 0) + 1);
+  for (const row of activeActivityRows) activityCountByNodeId.set(row.nodeId, (activityCountByNodeId.get(row.nodeId) ?? 0) + 1);
 
   return buildMapData(
     nodeRows.length ? nodeRows.map(toNodeSeed) : MVP_NODES,
@@ -539,6 +578,142 @@ export async function updateContentImportStatus(id: string, status: "draft" | "r
   const db = await getDb();
   if (!db) throw new Error("Banco de dados indisponível para atualizar importação");
   await db.update(contentImports).set({ status }).where(eq(contentImports.id, id));
+  return getContentImport(id);
+}
+
+export async function updateContentImportValidation(id: string, errors: string[]) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para guardar validação");
+  await db.update(contentImports).set({ validationErrorsJson: JSON.stringify(errors), updatedAt: new Date() }).where(eq(contentImports.id, id));
+  return getContentImport(id);
+}
+
+function parseContentImportDocument(saved: NonNullable<Awaited<ReturnType<typeof getContentImport>>>): ContentImportDocument {
+  try {
+    return validateContentImport(JSON.parse(saved.payloadJson));
+  } catch (error) {
+    throw new Error(error instanceof Error ? `Conteúdo inválido: ${error.message}` : "Conteúdo inválido");
+  }
+}
+
+export async function publishContentImport(id: string) {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para publicar conteúdo");
+  const saved = await getContentImport(id);
+  if (!saved) throw new Error("Importação não encontrada");
+  const document = parseContentImportDocument(saved);
+  const now = new Date();
+
+  await db.transaction(async (tx) => {
+    const oldNodes = await tx.select({ id: learningNodes.id })
+      .from(learningNodes)
+      .where(eq(learningNodes.pathId, document.path.id));
+    const oldNodeIds = oldNodes.map((node) => node.id);
+    if (oldNodeIds.length > 0) {
+      await tx.delete(lessonActivities).where(inArray(lessonActivities.nodeId, oldNodeIds));
+      await tx.delete(learningNodeSteps).where(inArray(learningNodeSteps.nodeId, oldNodeIds));
+      await tx.delete(nodeLexicalEntries).where(inArray(nodeLexicalEntries.nodeId, oldNodeIds));
+      await tx.delete(learningNodes).where(inArray(learningNodes.id, oldNodeIds));
+    }
+
+    await tx.insert(learningPaths).values({
+      id: document.path.id,
+      slug: document.path.slug,
+      title: document.path.title,
+      description: document.path.description,
+      createdAt: now,
+      updatedAt: now,
+    }).onDuplicateKeyUpdate({ set: {
+      slug: document.path.slug,
+      title: document.path.title,
+      description: document.path.description,
+      updatedAt: now,
+    } });
+
+    const activityStepById = new Map<string, { nodeId: string; stepId: string }>();
+    for (const node of document.path.nodes) {
+      await tx.insert(learningNodes).values({
+        id: node.id,
+        pathId: node.pathId,
+        title: node.title,
+        description: node.description,
+        objective: node.objective,
+        orderIndex: node.orderIndex,
+        prerequisiteNodeId: node.prerequisiteNodeId,
+        createdAt: now,
+        updatedAt: now,
+      });
+      for (const entry of node.lexicalEntries) {
+        await tx.insert(lexicalEntries).values({
+          id: entry.id,
+          hanzi: entry.hanzi,
+          pinyin: entry.pinyin,
+          meaningPtBr: entry.meaningPtBr,
+          exampleHanzi: entry.exampleHanzi,
+          examplePtBr: entry.examplePtBr,
+          audioJson: JSON.stringify(entry.audio ?? {}),
+          createdAt: now,
+          updatedAt: now,
+        }).onDuplicateKeyUpdate({ set: {
+          hanzi: entry.hanzi,
+          pinyin: entry.pinyin,
+          meaningPtBr: entry.meaningPtBr,
+          exampleHanzi: entry.exampleHanzi,
+          examplePtBr: entry.examplePtBr,
+          audioJson: JSON.stringify(entry.audio ?? {}),
+          updatedAt: now,
+        } });
+        await tx.insert(nodeLexicalEntries).values({ nodeId: node.id, lexicalEntryId: entry.id });
+      }
+      for (const step of node.steps) {
+        await tx.insert(learningNodeSteps).values({
+          id: step.id,
+          nodeId: node.id,
+          orderIndex: step.orderIndex,
+          kind: step.kind,
+          title: step.title,
+          description: step.description,
+          contentJson: JSON.stringify(step.content),
+          createdAt: now,
+          updatedAt: now,
+        });
+        if (step.content.kind === "practice" || step.content.kind === "application") {
+          for (const activityId of step.content.activityIds) activityStepById.set(activityId, { nodeId: node.id, stepId: step.id });
+        }
+      }
+      for (const activity of node.activities) {
+        const owner = activityStepById.get(activity.id);
+        if (!owner) throw new Error(`Atividade ${activity.id} não está associada a uma etapa prática`);
+        await tx.insert(lessonActivities).values({
+          id: activity.id,
+          nodeId: owner.nodeId,
+          stepId: owner.stepId,
+          type: activity.type,
+          orderIndex: activity.orderIndex,
+          title: activity.title,
+          instruction: activity.instruction,
+          explanation: activity.explanation,
+          hint: activity.hint,
+          prompt: activity.prompt,
+          hanzi: activity.hanzi,
+          pinyin: activity.pinyin,
+          meaning: activity.meaning,
+          optionsJson: JSON.stringify(activity.options),
+          tokensJson: JSON.stringify(activity.tokens),
+          correctOrderJson: JSON.stringify(activity.correctOrder),
+          expectedAnswer: activity.expectedAnswer,
+          correctOptionId: activity.correctOptionId,
+          feedbackCorrect: activity.feedbackCorrect,
+          feedbackIncorrect: activity.feedbackIncorrect,
+          audioJson: JSON.stringify(activity.audio ?? {}),
+          createdAt: now,
+          updatedAt: now,
+        });
+      }
+    }
+    await tx.update(contentImports).set({ status: "published", validationErrorsJson: "[]", updatedAt: now }).where(eq(contentImports.id, id));
+  });
+
   return getContentImport(id);
 }
 
@@ -694,7 +869,7 @@ export async function getLessonData(userId: number, nodeId: string, stepId?: str
       const vocabularyRows = vocabularyIds.length
         ? await db.select().from(lexicalEntries).where(inArray(lexicalEntries.id, vocabularyIds))
         : [];
-      return buildLessonData(map, steps, activitySeeds, nodeProgress, stepId, activityId, vocabularyRows);
+      return buildLessonData(map, steps, activitySeeds, nodeProgress, stepId, activityId, vocabularyRows.map(toLexicalEntrySeed));
     } catch (error) {
       if (!isMemoryFallbackEnabled()) throw error;
       console.warn("[Learning] Falling back to in-memory lesson:", error);
@@ -765,8 +940,13 @@ export async function submitActivityData(
 ): Promise<ActivitySubmission> {
   const eventKey = `${userId}:${input.clientEventId}`;
   const previousEvent = memoryEvents.get(eventKey);
-  if (previousEvent) return previousEvent;
+  if (previousEvent) {
+    if (previousEvent.activityId !== input.activityId || previousEvent.nodeId !== input.nodeId) throw new Error("clientEventId já foi usado em outra atividade");
+    return previousEvent;
+  }
 
+  const activeMap = await getLearningMapData(userId);
+  if (!activeMap.nodes.some((node) => node.id === input.nodeId)) throw new Error("Atividade não encontrada");
   const activity = await getInternalActivity(input.nodeId, input.stepId, input.activityId);
   if (!activity) throw new Error("Atividade não encontrada");
   const evaluation = evaluateActivity(activity, input.selectedOptionId, input.selectedOrder);
@@ -776,8 +956,12 @@ export async function submitActivityData(
   if (db) {
     try {
       await ensureMvpSeed(db);
-      const existing = await db.select().from(activityCompletions).where(eq(activityCompletions.clientEventId, input.clientEventId)).limit(1);
+      const existing = await db.select().from(activityCompletions).where(and(
+        eq(activityCompletions.userId, userId),
+        eq(activityCompletions.clientEventId, input.clientEventId),
+      )).limit(1);
       if (existing[0]) {
+        if (existing[0].activityId !== input.activityId || existing[0].nodeId !== input.nodeId) throw new Error("clientEventId já foi usado em outra atividade");
         const map = await getLearningMapData(userId);
         const node = map.nodes.find((candidate) => candidate.id === input.nodeId);
         if (node) {
@@ -798,11 +982,34 @@ export async function submitActivityData(
         }
       }
 
-      const [currentNodeRows, currentUserRows, activityRows] = await Promise.all([
-        db.select().from(userNodeProgress).where(eq(userNodeProgress.userId, userId)),
-        db.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1),
-        db.select().from(lessonActivities).where(eq(lessonActivities.nodeId, input.nodeId)),
+      let result: ReturnType<typeof applyActivityCompletion> | undefined;
+      let replayedCompletion = false;
+      await db.transaction(async (tx) => {
+        await tx.insert(userProgress).values({ userId, xp: 0, streakDays: 0, completedNodeCount: 0, updatedAt: completedAt }).onDuplicateKeyUpdate({ set: { updatedAt: completedAt } });
+        await tx.insert(userNodeProgress).values({
+          userId,
+          nodeId: input.nodeId,
+          status: "in_progress",
+          progressPercent: 0,
+          completedActivityIdsJson: "[]",
+          completedAt: null,
+          createdAt: completedAt,
+          updatedAt: completedAt,
+        }).onDuplicateKeyUpdate({ set: { updatedAt: completedAt } });
+        const [currentNodeRows, currentUserRows, activityRows] = await Promise.all([
+        tx.select().from(userNodeProgress).where(eq(userNodeProgress.userId, userId)).for("update"),
+        tx.select().from(userProgress).where(eq(userProgress.userId, userId)).limit(1).for("update"),
+        tx.select().from(lessonActivities).where(eq(lessonActivities.nodeId, input.nodeId)),
       ]);
+      const replayRows = await tx.select().from(activityCompletions).where(and(
+        eq(activityCompletions.userId, userId),
+        eq(activityCompletions.clientEventId, input.clientEventId),
+      )).limit(1);
+      if (replayRows[0]) {
+        if (replayRows[0].activityId !== input.activityId || replayRows[0].nodeId !== input.nodeId) throw new Error("clientEventId já foi usado em outra atividade");
+        replayedCompletion = true;
+        return;
+      }
       const currentNode = currentNodeRows.find((row) => row.nodeId === input.nodeId);
       const currentUser = currentUserRows[0];
       const currentNodeProgress: NodeProgressSnapshot | undefined = currentNode
@@ -814,7 +1021,7 @@ export async function submitActivityData(
             completedAt: currentNode.completedAt,
           }
         : undefined;
-      const result = applyActivityCompletion(
+      result = applyActivityCompletion(
         currentNodeProgress ?? {
           nodeId: input.nodeId,
           status: "in_progress",
@@ -833,7 +1040,6 @@ export async function submitActivityData(
         activityRows.length,
       );
 
-      await db.transaction(async (tx) => {
         await tx
           .insert(userNodeProgress)
           .values({
@@ -861,12 +1067,10 @@ export async function submitActivityData(
           .onDuplicateKeyUpdate({
             set: { xp: result.userProgress.xp, streakDays: result.userProgress.streakDays, completedNodeCount: result.userProgress.completedNodeCount, updatedAt: completedAt },
           });
-        const relationRows = result.nodeProgress.status === "completed"
-          ? await tx
-            .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
-            .from(nodeLexicalEntries)
-            .where(eq(nodeLexicalEntries.nodeId, input.nodeId))
-          : [];
+        const relationRows = await tx
+          .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
+          .from(nodeLexicalEntries)
+          .where(eq(nodeLexicalEntries.nodeId, input.nodeId));
         const entryIds = [...new Set(relationRows.map((row) => row.lexicalEntryId))];
         if (entryIds.length > 0) {
           const stateRows = await tx
@@ -929,6 +1133,8 @@ export async function submitActivityData(
           completedAt,
         });
       });
+      if (replayedCompletion) return submitActivityData(userId, input);
+      if (!result) throw new Error("Progresso da atividade não foi calculado");
 
       const map = await getLearningMapData(userId);
       const node = map.nodes.find((candidate) => candidate.id === input.nodeId)!;
@@ -969,7 +1175,7 @@ export async function submitActivityData(
     totalActivityCount,
   );
   getMemoryNodeProgress(userId).set(input.nodeId, result.nodeProgress);
-  if (result.nodeProgress.status === "completed") markMemoryVocabularyExposed(userId, input.nodeId, completedAt);
+  markMemoryVocabularyExposed(userId, input.nodeId, completedAt);
   memoryUserProgress.set(userId, result.userProgress);
   const map = getMemoryMapData(userId);
   const node = map.nodes.find((candidate) => candidate.id === input.nodeId)!;

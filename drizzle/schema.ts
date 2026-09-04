@@ -71,6 +71,7 @@ export const lexicalEntries = mysqlTable("lexical_entries", {
   meaningPtBr: varchar("meaningPtBr", { length: 255 }).notNull(),
   exampleHanzi: varchar("exampleHanzi", { length: 255 }).notNull(),
   examplePtBr: varchar("examplePtBr", { length: 255 }).notNull(),
+  audioJson: text("audioJson").notNull().default("{}"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -127,6 +128,7 @@ export const lessonActivities = mysqlTable(
     correctOptionId: varchar("correctOptionId", { length: 64 }),
     feedbackCorrect: text("feedbackCorrect").notNull(),
     feedbackIncorrect: text("feedbackIncorrect").notNull(),
+    audioJson: text("audioJson").notNull().default("{}"),
     createdAt: timestamp("createdAt").defaultNow().notNull(),
     updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
   },
@@ -245,15 +247,17 @@ export const userProgress = mysqlTable("user_progress", {
 });
 
 export const activityCompletions = mysqlTable("activity_completions", {
-  clientEventId: varchar("clientEventId", { length: 96 }).primaryKey(),
+  clientEventId: varchar("clientEventId", { length: 96 }).notNull(),
   userId: int("userId").notNull(),
   activityId: varchar("activityId", { length: 64 }).notNull(),
   nodeId: varchar("nodeId", { length: 64 }).notNull(),
-  selectedOptionId: varchar("selectedOptionId", { length: 64 }).notNull(),
+  selectedOptionId: varchar("selectedOptionId", { length: 2048 }).notNull(),
   isCorrect: boolean("isCorrect").notNull(),
   xpAwarded: int("xpAwarded").default(0).notNull(),
   completedAt: timestamp("completedAt").defaultNow().notNull(),
-});
+}, (table) => ({
+  userEventIdx: primaryKey({ columns: [table.userId, table.clientEventId] }),
+}));
 
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;

@@ -45,7 +45,7 @@ export function AudioButton({ text, audioUrl, textHash, label = "Ouvir", rate = 
 
   const play = () => {
     void Speech.stop();
-    if (source) {
+    if (source && !status.error) {
       player.play();
       return;
     }
@@ -55,12 +55,12 @@ export function AudioButton({ text, audioUrl, textHash, label = "Ouvir", rate = 
   };
 
   const stop = () => {
-    if (source) player.pause();
+    if (source && status.playing) player.pause();
     void Speech.stop();
     setIsSpeaking(false);
   };
 
-  const active = source ? status.playing : isSpeaking;
+  const active = Boolean(source && status.playing) || isSpeaking;
   const loading = Boolean(source && !status.isLoaded && !status.error);
 
   return (

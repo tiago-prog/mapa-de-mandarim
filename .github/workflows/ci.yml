@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'feature/**']
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    services:
+      mariadb:
+        image: mariadb:11.4
+        env:
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: mapa_mandarim_test
+          MARIADB_USER: mapa_test
+          MARIADB_PASSWORD: mapa_test
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mariadb-admin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    env:
+      DATABASE_URL: mysql://mapa_test:mapa_test@127.0.0.1:3306/mapa_mandarim_test
+      RUN_DATABASE_TESTS: '1'
+      MAPA_RUNTIME_MODE: persistent
+      JWT_SECRET: ci-only-secret-change-me
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.12.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: pnpm check
+      - run: pnpm test
+      - run: pnpm lint
+      - run: pnpm build
+      - run: pnpm exec expo export --platform web
+      - run: git diff --check
