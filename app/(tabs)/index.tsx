@@ -86,6 +86,7 @@ export default function HomeScreen() {
                     <Text className="font-semibold text-foreground">{user?.name || "Sua conta"}</Text>
                     {user?.email ? <Text className="mt-1 text-xs text-muted">{user.email}</Text> : null}
                   </View>
+                  {user?.role === "admin" ? <AppButton label="Área administrativa" variant="quiet" onPress={() => { setProfileOpen(false); router.push("/admin"); }} /> : null}
                   <AppButton label="Sair da conta" variant="secondary" onPress={handleLogout} accessibilityLabel="Sair da conta" />
                 </AppCard>
               ) : null}

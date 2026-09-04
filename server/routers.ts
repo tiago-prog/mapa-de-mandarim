@@ -13,6 +13,9 @@ import {
   getAudioAssetByHash,
   saveAudioAsset,
   saveContentImportDraft,
+  listContentImports,
+  getContentImport,
+  updateContentImportStatus,
 } from "./db";
 import { getDictionaryEntry, searchDictionary, setDictionaryEntryStatus } from "./dictionary";
 import { audioAssetInputSchema } from "./domain/audio";
@@ -126,6 +129,38 @@ export const appRouter = router({
   }),
 
   adminContent: router({
+    list: adminProcedure.query(() => listContentImports()),
+    get: adminProcedure
+      .input(z.object({ id: z.string().min(1).max(64) }))
+      .query(async ({ input }) => {
+        const saved = await getContentImport(input.id);
+        if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        let document: unknown = null;
+        try { document = JSON.parse(saved.payloadJson); } catch { /* mantém payload indisponível */ }
+        return { ...saved, document };
+      }),
+    setStatus: adminProcedure
+      .input(z.object({ id: z.string().min(1).max(64), status: z.enum(["draft", "review", "published", "archived"]) }))
+      .mutation(async ({ input }) => {
+        const saved = await getContentImport(input.id);
+        if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        if (saved.status === "archived" && input.status !== "draft") throw new TRPCError({ code: "BAD_REQUEST", message: "Conteúdo arquivado deve ser reaberto como rascunho" });
+        return updateContentImportStatus(input.id, input.status);
+      }),
+    validate: adminProcedure
+      .input(z.object({ id: z.string().min(1).max(64) }))
+      .mutation(async ({ input }) => {
+        const saved = await getContentImport(input.id);
+        if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        try {
+          const document = validateContentImport(JSON.parse(saved.payloadJson));
+          await updateContentImportStatus(input.id, "review");
+          return { valid: true, issues: [], document };
+        } catch (error) {
+          const issues = error instanceof z.ZodError ? error.issues.map((issue) => issue.message) : ["JSON inválido"];
+          return { valid: false, issues };
+        }
+      }),
     importDraft: adminProcedure
       .input(z.object({ document: z.unknown() }))
       .mutation(async ({ ctx, input }) => {

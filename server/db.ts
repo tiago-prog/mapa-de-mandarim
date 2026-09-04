@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 
 import {
@@ -514,6 +514,32 @@ export async function saveContentImportDraft(input: typeof contentImports.$infer
   });
   const rows = await db.select().from(contentImports).where(eq(contentImports.id, input.id)).limit(1);
   return rows[0];
+}
+export async function listContentImports() {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select({
+    id: contentImports.id,
+    pathId: contentImports.pathId,
+    contentVersion: contentImports.contentVersion,
+    status: contentImports.status,
+    validationErrorsJson: contentImports.validationErrorsJson,
+    createdBy: contentImports.createdBy,
+    createdAt: contentImports.createdAt,
+    updatedAt: contentImports.updatedAt,
+  }).from(contentImports).orderBy(desc(contentImports.updatedAt));
+}
+export async function getContentImport(id: string) {
+  const db = await getDb();
+  if (!db) return undefined;
+  const rows = await db.select().from(contentImports).where(eq(contentImports.id, id)).limit(1);
+  return rows[0];
+}
+export async function updateContentImportStatus(id: string, status: "draft" | "review" | "published" | "archived") {
+  const db = await getDb();
+  if (!db) throw new Error("Banco de dados indisponível para atualizar importação");
+  await db.update(contentImports).set({ status }).where(eq(contentImports.id, id));
+  return getContentImport(id);
 }
 
 export async function upsertUser(user: InsertUser): Promise<void> {

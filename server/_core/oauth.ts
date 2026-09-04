@@ -78,7 +78,7 @@ async function syncGoogleUser(googleUser: GoogleUser) {
 }
 
 function userResponse(user: Awaited<ReturnType<typeof getUserByOpenId>>) {
-  return { id: user?.id ?? null, openId: user?.openId ?? null, name: user?.name ?? null, email: user?.email ?? null, loginMethod: user?.loginMethod ?? null, lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString() };
+  return { id: user?.id ?? null, openId: user?.openId ?? null, name: user?.name ?? null, email: user?.email ?? null, loginMethod: user?.loginMethod ?? null, role: user?.role ?? "user", lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString() };
 }
 
 export function registerOAuthRoutes(app: Express) {
