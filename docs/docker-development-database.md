@@ -11,6 +11,36 @@ docker --version
 docker compose version
 ```
 
+## Windows com Docker Desktop
+
+O ambiente principal recomendado para Windows é o **PowerShell com Docker Desktop em execução**. Não é necessário instalar MariaDB diretamente no Windows nem iniciar o serviço dentro do WSL.
+
+Na raiz do projeto, execute:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\docker-db.ps1 -Action up
+```
+
+Para as restantes operações:
+
+```powershell
+.\scripts\docker-db.ps1 -Action status
+.\scripts\docker-db.ps1 -Action migrate
+.\scripts\docker-db.ps1 -Action logs
+.\scripts\docker-db.ps1 -Action stop
+.\scripts\docker-db.ps1 -Action down
+.\scripts\docker-db.ps1 -Action reset
+```
+
+O PowerShell chama `docker compose` diretamente. O Docker Desktop fornece o motor Linux e o volume persistente, enquanto o código continua no filesystem do Windows.
+
+Se preferires executar pelo WSL, ativa a integração da distribuição no Docker Desktop e usa o script Bash. Não executes os dois fluxos ao mesmo tempo:
+
+```bash
+./scripts/docker-db.sh up
+```
+
 ## Primeiro arranque
 
 Na raiz do projeto:

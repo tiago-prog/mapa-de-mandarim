@@ -70,6 +70,13 @@ chmod +x scripts/docker-db.sh
 ./scripts/docker-db.sh up
 ```
 
+No Windows PowerShell, use o script nativo equivalente:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\scripts\docker-db.ps1 -Action up
+```
+
 O comando sobe o MariaDB em volume persistente e executa o runner versionado sobre todos os ficheiros `drizzle/*.sql`. Outros comandos são `./scripts/docker-db.sh migrate`, `status`, `logs`, `stop`, `down` e `reset`. O `reset` remove o volume e apaga os dados locais de desenvolvimento. Consulte [`docs/docker-development-database.md`](./docs/docker-development-database.md).
 
 ## Estrutura principal
