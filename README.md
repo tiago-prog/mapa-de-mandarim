@@ -61,6 +61,17 @@ O comando `pnpm dev` inicia o servidor da API e o Metro/Expo web. Para testar em
 
 O desenvolvimento pode usar MariaDB local sem depender de um banco compartilhado. No Ubuntu/Linux, execute `./scripts/setup-local-db-ubuntu.sh`; no Windows, use o PowerShell nativo com `./scripts/setup-local-db-windows.ps1`. Os scripts criam o banco, aplicam as migrações e geram `.env.local`. Consulte [`docs/local-development-database.md`](./docs/local-development-database.md) para os pré-requisitos, parâmetros e limites do ambiente local. Nunca commite a `DATABASE_URL` real.
 
+### Banco local com Docker Compose
+
+Como alternativa multiplataforma, é possível executar o MariaDB e todas as migrações em containers, sem instalar MariaDB diretamente no computador:
+
+```bash
+chmod +x scripts/docker-db.sh
+./scripts/docker-db.sh up
+```
+
+O comando sobe o MariaDB em volume persistente e executa o runner versionado sobre todos os ficheiros `drizzle/*.sql`. Outros comandos são `./scripts/docker-db.sh migrate`, `status`, `logs`, `stop`, `down` e `reset`. O `reset` remove o volume e apaga os dados locais de desenvolvimento. Consulte [`docs/docker-development-database.md`](./docs/docker-development-database.md).
+
 ## Estrutura principal
 
 ```text

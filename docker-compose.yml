@@ -1,0 +1,36 @@
+services:
+  db:
+    image: mariadb:11.4
+    container_name: mapa-de-mandarim-db
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: ${DB_NAME:-mapa_mandarim_dev}
+      MARIADB_USER: ${DB_USER:-mapa_dev}
+      MARIADB_PASSWORD: ${DB_PASSWORD:-mapa_dev_local}
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-mapa_root_local}
+    ports:
+      - "${DB_PORT:-3306}:3306"
+    volumes:
+      - mapa_mariadb_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mariadb-admin ping -h 127.0.0.1 -u root -p$${MARIADB_ROOT_PASSWORD} --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 10s
+
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrations
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://${DB_USER:-mapa_dev}:${DB_PASSWORD:-mapa_dev_local}@db:3306/${DB_NAME:-mapa_mandarim_dev}
+    restart: "no"
+
+volumes:
+  mapa_mariadb_data:
+    name: mapa-de-mandarim-mariadb
