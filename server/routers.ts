@@ -210,6 +210,46 @@ export const appRouter = router({
   }),
 
   adminAudio: router({
+    generateForImport: adminProcedure
+      .input(z.object({ id: z.string().min(1).max(64) }))
+      .mutation(async ({ input }) => {
+        const saved = await getContentImport(input.id);
+        if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        if (saved.status === "published") throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível editar conteúdo publicado" });
+        const document = validateContentImport(JSON.parse(saved.payloadJson));
+        const assets = document.path.nodes.flatMap((node) => node.audioAssets);
+        let generated = 0;
+        let reused = 0;
+        const audioById = new Map<string, { url: string | null; source: "azure" }>();
+        for (const asset of assets) {
+          const inputAsset = { ...asset, audio: { ...asset.audio, source: "azure" as const, url: null } };
+          const plan = getAudioAssetPlan(inputAsset);
+          const existing = await getAudioAssetByHash(plan.textHash);
+          if (existing?.status === "ready") {
+            reused += 1;
+            audioById.set(asset.id, { url: existing.publicUrl, source: "azure" });
+            continue;
+          }
+          const databasePlan = { ...plan, rate: String(plan.rate) };
+          await saveAudioAsset({ ...databasePlan, status: "processing", errorMessage: null });
+          const generatedAsset = await generateAndUploadAudio(inputAsset);
+          await saveAudioAsset({ ...plan, ...generatedAsset, id: plan.id, rate: String(generatedAsset.rate) });
+          generated += 1;
+          audioById.set(asset.id, { url: generatedAsset.publicUrl, source: "azure" });
+        }
+        const updatedDocument = {
+          ...document,
+          path: {
+            ...document.path,
+            nodes: document.path.nodes.map((node) => ({
+              ...node,
+              audioAssets: node.audioAssets.map((asset) => ({ ...asset, audio: { ...asset.audio, ...(audioById.get(asset.id) ?? {}) } })),
+            })),
+          },
+        };
+        await saveContentImportDraft({ id: saved.id, pathId: updatedDocument.path.id, contentVersion: updatedDocument.contentVersion, status: "draft", payloadJson: JSON.stringify(updatedDocument), validationErrorsJson: "[]", createdBy: saved.createdBy });
+        return { total: assets.length, generated, reused };
+      }),
     generate: adminProcedure
       .input(audioAssetInputSchema)
       .mutation(async ({ input }) => {
