@@ -1,25 +1,35 @@
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
-import { useState } from "react";
+import { ScrollView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
+import { NextActionCard } from "@/components/learning/next-action-card";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
-import { ProgressBar } from "@/components/ui/progress-bar";
-import { StatPill } from "@/components/ui/stat-pill";
+import { AppHeader } from "@/components/ui/app-header";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { Skeleton } from "@/components/ui/skeleton";
 import { trpc } from "@/lib/trpc";
-import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 
-function DataState({ message, action }: { message: string; action?: () => void }) {
-  const colors = useColors();
+function LoadingHome() {
+  return (
+    <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right", "bottom"]}>
+      <View className="mx-auto w-full max-w-6xl gap-6">
+        <View className="flex-row items-center justify-between"><Skeleton className="h-4 w-40 rounded-full" /><Skeleton className="h-11 w-11 rounded-full" /></View>
+        <View className="gap-2"><Skeleton className="h-4 w-44 rounded-full" /><Skeleton className="h-10 w-72 rounded-xl" /><Skeleton className="h-5 w-80 rounded-full" /></View>
+        <View className="gap-4 md:flex-row"><Skeleton className="h-64 flex-1 rounded-[28px]" /><View className="gap-3 md:w-64"><Skeleton className="h-20 rounded-[20px]" /><Skeleton className="h-20 rounded-[20px]" /><Skeleton className="h-20 rounded-[20px]" /></View></View>
+      </View>
+    </ScreenContainer>
+  );
+}
+
+function DataState({ message, action }: { message: string; action: () => void }) {
   return (
     <ScreenContainer className="items-center justify-center px-5" edges={["top", "left", "right", "bottom"]}>
       <AppCard className="w-full max-w-md items-center gap-4 p-6">
-        <Text className="text-center text-lg font-bold text-foreground">Não foi possível carregar</Text>
+        <Text className="text-center text-lg font-bold text-foreground">Não foi possível carregar Hoje</Text>
         <Text className="text-center text-sm leading-5 text-muted">{message}</Text>
-        {action ? <AppButton label="Tentar novamente" onPress={action} /> : null}
-        <ActivityIndicator color={colors.primary} style={{ opacity: action ? 0 : 1 }} />
+        <AppButton label="Tentar novamente" onPress={action} />
       </AppCard>
     </ScreenContainer>
   );
@@ -27,151 +37,59 @@ function DataState({ message, action }: { message: string; action?: () => void }
 
 export default function HomeScreen() {
   const router = useRouter();
-  const colors = useColors();
   const { user, logout } = useAuth();
-  const [profileOpen, setProfileOpen] = useState(false);
   const todayQuery = trpc.today.get.useQuery();
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
   const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "vamos continuar";
-  const avatarLabel = displayName === "vamos continuar" ? "?" : displayName.slice(0, 1).toUpperCase();
 
-  const handleLogout = async () => {
-    setProfileOpen(false);
-    await logout();
-    router.replace("/login");
-  };
-
-  if (todayQuery.isLoading) {
-    return (
-      <ScreenContainer className="items-center justify-center" edges={["top", "left", "right", "bottom"]}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="mt-3 text-sm text-muted">Carregando seu próximo passo...</Text>
-      </ScreenContainer>
-    );
-  }
-
-  if (todayQuery.error || !todayQuery.data) {
-    return <DataState message={todayQuery.error?.message ?? "Tente novamente em alguns instantes."} action={() => void todayQuery.refetch()} />;
-  }
+  if (todayQuery.isLoading) return <LoadingHome />;
+  if (todayQuery.error || !todayQuery.data) return <DataState message={todayQuery.error?.message ?? "Tente novamente em alguns instantes."} action={() => void todayQuery.refetch()} />;
 
   const { data } = todayQuery;
   const recommendedNode = data.nodes.find((node) => node.id === data.recommendedNodeId) ?? data.nodes[0];
   const completedNodes = data.nodes.filter((node) => node.status === "completed").length;
   const pathProgress = data.nodes.length ? Math.round((completedNodes / data.nodes.length) * 100) : 0;
+  const reviewDue = data.reviewDueCount;
+  const hasReview = reviewDue > 0;
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/login");
+  };
 
   return (
     <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right"]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 36 }}>
-        <View className="gap-6">
-          <View className="flex-row items-start justify-between">
-            <View className="flex-1 pr-4">
-              <Text className="text-sm font-medium text-primary">MAPA DE MANDARIM</Text>
-              <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">{greeting}, {displayName}.</Text>
-              <Text className="mt-2 text-base leading-6 text-muted">Seu próximo passo está pronto.</Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
+        <View className="mx-auto w-full max-w-6xl gap-6">
+          <AppHeader active="Hoje" user={user} onLogout={handleLogout} />
+          <SectionHeading eyebrow="SUGESTÃO PARA HOJE" title={`${new Date().getHours() < 12 ? "Bom dia" : new Date().getHours() < 18 ? "Boa tarde" : "Boa noite"}, ${displayName}.`} description="Uma pequena sessão mantém seu mandarim em movimento." />
+
+          <View className="gap-4 md:flex-row">
+            <View className="flex-1">
+              {hasReview ? (
+                <NextActionCard title={`Revisar ${reviewDue} ${reviewDue === 1 ? "cartão" : "cartões"}`} description="Há palavras no intervalo certo para você relembrar agora. Comece com uma sessão curta." ctaLabel="Revisar agora" onPress={() => router.push("/(tabs)/review")} />
+              ) : (
+                <NextActionCard title={recommendedNode ? recommendedNode.title : "Explorar o mapa"} description={recommendedNode?.description ?? "Escolha uma habilidade e avance por pequenas conexões."} eyebrow="PRÓXIMA AÇÃO" progress={recommendedNode?.progressPercent ?? 0} progressLabel="Progresso do nó" ctaLabel={recommendedNode ? "Continuar aprendizado" : "Abrir mapa"} onPress={() => recommendedNode ? router.push({ pathname: "/node/[id]", params: { id: recommendedNode.id } }) : router.push("/(tabs)/map")} />
+              )}
             </View>
-            <View className="items-end">
-              <Pressable
-                onPress={() => setProfileOpen((open) => !open)}
-                className="h-12 w-12 items-center justify-center rounded-full bg-primary"
-                accessibilityRole="button"
-                accessibilityLabel="Abrir menu da conta"
-              >
-                <Text className="text-xl font-bold text-background">{avatarLabel}</Text>
-              </Pressable>
-              {profileOpen ? (
-                <AppCard className="absolute right-0 top-14 z-10 w-56 gap-3 p-4">
-                  <View>
-                    <Text className="font-semibold text-foreground">{user?.name || "Sua conta"}</Text>
-                    {user?.email ? <Text className="mt-1 text-xs text-muted">{user.email}</Text> : null}
-                  </View>
-                  {user?.role === "admin" ? <AppButton label="Área administrativa" variant="quiet" onPress={() => { setProfileOpen(false); router.push("/admin"); }} /> : null}
-                  <AppButton label="Sair da conta" variant="secondary" onPress={handleLogout} accessibilityLabel="Sair da conta" />
-                </AppCard>
-              ) : null}
+            <View className="gap-3 md:w-64">
+              <StatCard value={String(reviewDue)} label="cartões para revisar" />
+              <StatCard value={`+${data.userProgress.xp} XP`} label="XP hoje" />
+              <StatCard value={`${data.userProgress.streakDays} dias`} label="sequência atual" />
             </View>
           </View>
 
-          <AppCard className="gap-5" tone="ink">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xs font-semibold uppercase tracking-widest text-surface">CONTINUAR TRILHA</Text>
-              <Text className="text-sm font-semibold text-warning">+40 XP</Text>
-            </View>
-            <View>
-              <Text className="text-2xl font-bold leading-8 text-background">{recommendedNode.title}</Text>
-              <Text className="mt-2 text-sm leading-5 text-surface">{recommendedNode.description}</Text>
-            </View>
-            <View className="gap-2">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-xs text-surface">Progresso do nó</Text>
-                <Text className="text-xs font-semibold text-background">{recommendedNode.progressPercent}%</Text>
-              </View>
-              <ProgressBar value={recommendedNode.progressPercent} className="bg-sand/30" fillClassName="bg-warning" />
-            </View>
-            <AppButton label="Continuar aprendizado" onPress={() => router.push({ pathname: "/node/[id]", params: { id: recommendedNode.id } })} />
+          <AppCard tone="sand" className="gap-4">
+            <View className="flex-row items-start justify-between gap-4"><View className="flex-1 gap-1"><Text className="text-xs font-bold uppercase tracking-[1.5px] text-primary">TRILHA ATUAL</Text><Text className="text-xl font-bold text-foreground">{data.path.title}</Text><Text className="text-sm leading-5 text-muted">{data.path.description}</Text></View><Text className="text-2xl font-bold text-primary">{completedNodes}/{data.nodes.length}</Text></View>
+            <View className="gap-2"><View className="flex-row justify-between"><Text className="text-xs font-semibold text-muted">Progresso da trilha</Text><Text className="text-xs font-bold text-primary">{pathProgress}%</Text></View><View className="h-2 overflow-hidden rounded-full bg-border"><View className="h-full rounded-full bg-warning" style={{ width: `${pathProgress}%` }} /></View></View>
+            <AppButton label="Abrir mapa" variant="secondary" onPress={() => router.push("/(tabs)/map")} />
           </AppCard>
 
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-foreground">Hoje</Text>
-              <Text className="text-sm text-muted">Seu ritmo</Text>
-            </View>
-            <View className="flex-row gap-3">
-              <StatPill label="nós concluídos" value={`${completedNodes}`} />
-              <StatPill label="sequência" value={`${data.userProgress.streakDays} dias`} tone="sage" />
-              <StatPill label="XP ganho" value={`${data.userProgress.xp}`} tone="gold" />
-            </View>
-          </View>
-
-          <AppCard className="gap-4" tone="sand">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 pr-3">
-                <Text className="text-xs font-semibold uppercase tracking-widest text-primary">SEU MAPA</Text>
-                <Text className="mt-1 text-lg font-bold text-foreground">{data.path.title}</Text>
-              </View>
-              <Text className="text-2xl font-bold text-primary">{completedNodes}/{data.nodes.length}</Text>
-            </View>
-            <ProgressBar value={pathProgress} />
-            <Text className="text-sm leading-5 text-muted">{data.path.description}</Text>
-          </AppCard>
-
-          <AppCard className="gap-4" tone={data.reviewDueCount > 0 ? "sand" : "paper"}>
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 pr-3">
-                <Text className="text-xs font-semibold uppercase tracking-widest text-primary">REVISÃO ESPAÇADA</Text>
-                <Text className="mt-1 text-lg font-bold text-foreground">
-                  {data.reviewDueCount > 0 ? `${data.reviewDueCount} ${data.reviewDueCount === 1 ? "palavra espera" : "palavras esperam"} por você` : "Nenhuma revisão pendente"}
-                </Text>
-              </View>
-              <Text className="text-3xl font-bold text-primary">复</Text>
-            </View>
-            <Text className="text-sm leading-5 text-muted">
-              {data.reviewDueCount > 0 ? "Reforce seu vocabulário no intervalo certo." : "Continue aprendendo e novas palavras entrarão na sua agenda."}
-            </Text>
-            <AppButton
-              label={data.reviewDueCount > 0 ? "Revisar agora" : "Abrir revisão"}
-              variant={data.reviewDueCount > 0 ? "primary" : "quiet"}
-              onPress={() => router.push("/(tabs)/review")}
-              accessibilityLabel="Abrir revisão espaçada"
-            />
-          </AppCard>
-
-          <View className="gap-3">
-            <Text className="text-xl font-bold text-foreground">Para manter o ritmo</Text>
-            <AppCard className="flex-row items-center gap-4">
-              <View className="h-11 w-11 items-center justify-center rounded-2xl bg-primary/10">
-                <Text className="text-xl text-primary">学</Text>
-              </View>
-              <View className="flex-1">
-                <Text className="font-semibold text-foreground">Explore o mapa</Text>
-                <Text className="mt-1 text-sm text-muted">Veja os próximos nós e seus pré-requisitos.</Text>
-              </View>
-              <AppButton label="Abrir" variant="quiet" onPress={() => router.push("/(tabs)/map")} accessibilityLabel="Abrir mapa" />
-            </AppCard>
-          </View>
+          <View className="gap-3"><Text className="text-xl font-bold text-foreground">Para manter o ritmo</Text><View className="gap-3 md:flex-row"><AppCard className="flex-1 flex-row items-center gap-4"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-primary/10"><Text className="text-2xl font-bold text-primary">学</Text></View><View className="flex-1 gap-1"><Text className="font-bold text-foreground">Aprenda por contexto</Text><Text className="text-sm leading-5 text-muted">Veja a próxima habilidade e pratique uma coisa por vez.</Text></View><AppButton label="Mapa" variant="quiet" onPress={() => router.push("/(tabs)/map")} /></AppCard><AppCard className="flex-1 flex-row items-center gap-4"><View className="h-12 w-12 items-center justify-center rounded-2xl bg-warning/20"><Text className="text-2xl font-bold text-primary">词</Text></View><View className="flex-1 gap-1"><Text className="font-bold text-foreground">Cuide do vocabulário</Text><Text className="text-sm leading-5 text-muted">Revise suas palavras e acompanhe o próprio estado.</Text></View><AppButton label="Abrir" variant="quiet" onPress={() => router.push("/(tabs)/library")} /></AppCard></View></View>
         </View>
       </ScrollView>
     </ScreenContainer>
   );
+}
+
+function StatCard({ value, label }: { value: string; label: string }) {
+  return <AppCard className="min-h-[84px] justify-center gap-1 p-4"><Text className="text-2xl font-bold text-foreground">{value}</Text><Text className="text-sm text-muted">{label}</Text></AppCard>;
 }

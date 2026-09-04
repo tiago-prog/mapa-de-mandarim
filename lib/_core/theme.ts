@@ -36,6 +36,9 @@ type RuntimePalette = SchemePaletteItem & {
   tabIconDefault: string;
   tabIconSelected: string;
   border: string;
+  sand: string;
+  gold: string;
+  sky: string;
 };
 
 function buildRuntimePalette(scheme: ColorScheme): RuntimePalette {
@@ -49,6 +52,9 @@ function buildRuntimePalette(scheme: ColorScheme): RuntimePalette {
     tabIconDefault: base.muted,
     tabIconSelected: base.primary,
     border: base.border,
+    sand: (base as Record<string, string>).sand ?? base.surface,
+    gold: (base as Record<string, string>).gold ?? base.warning,
+    sky: (base as Record<string, string>).sky ?? base.primary,
   };
 }
 

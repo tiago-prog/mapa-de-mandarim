@@ -1,27 +1,30 @@
-import { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { useMemo, useState } from "react";
 
+import { WordDetailPanel } from "@/components/learning/word-detail-panel";
 import { ScreenContainer } from "@/components/screen-container";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
-import { trpc } from "@/lib/trpc";
+import { AppHeader } from "@/components/ui/app-header";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { useAuth } from "@/hooks/use-auth";
 import { useColors } from "@/hooks/use-colors";
+import { trpc } from "@/lib/trpc";
+import type { WordStatus } from "@/server/domain/vocabulary";
 
-type WordFilter = "all" | "known" | "learning";
-
-const STATUS_LABELS = {
-  new: "Nova",
-  known: "Conhecida",
-  learning: "Em aprendizado",
-} as const;
+type WordFilter = "all" | WordStatus;
+type Scope = "mine" | "dictionary";
+const STATUS_LABELS: Record<WordStatus, string> = { new: "Nova", known: "Conhecida", learning: "Em aprendizado" };
 
 export default function LibraryScreen() {
   const colors = useColors();
+  const { user, logout } = useAuth();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<WordFilter>("all");
+  const [scope, setScope] = useState<Scope>("mine");
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const utils = trpc.useUtils();
-  const dictionaryQuery = trpc.dictionary.myWords.useQuery({});
+  const dictionaryQuery = trpc.dictionary.search.useQuery({ query, limit: 50 });
   const statusMutation = trpc.dictionary.setStatus.useMutation({
     onSuccess: (entry) => {
       setSelectedEntryId(entry.id);
@@ -32,132 +35,33 @@ export default function LibraryScreen() {
   });
 
   const entries = useMemo(() => {
-    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
-    const personalEntries = dictionaryQuery.data ?? [];
-    if (!normalizedQuery) return personalEntries;
-    return personalEntries.filter((entry) => [entry.hanzi, entry.pinyin, entry.meaningPtBr].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedQuery)));
-  }, [dictionaryQuery.data, query]);
-  const visibleEntries = useMemo(
-    () => (filter === "all" ? entries : entries.filter((entry) => entry.status === filter)),
-    [entries, filter],
-  );
-  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
+    const all = dictionaryQuery.data ?? [];
+    const scoped = scope === "mine" ? all.filter((entry) => entry.status !== "new") : all;
+    return filter === "all" ? scoped : scoped.filter((entry) => entry.status === filter);
+  }, [dictionaryQuery.data, filter, scope]);
+  const selectedEntry = (dictionaryQuery.data ?? []).find((entry) => entry.id === selectedEntryId) ?? null;
 
-  const setStatus = (status: "new" | "known" | "learning") => {
+  const setStatus = (status: WordStatus) => {
     if (!selectedEntry || statusMutation.isPending) return;
     statusMutation.mutate({ entryId: selectedEntry.id, status });
   };
+  const handleLogout = async () => { await logout(); };
 
   return (
     <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right"]}>
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 40 }}>
-        <View className="gap-5">
-          <View>
-            <Text className="text-sm font-medium text-primary">BIBLIOTECA</Text>
-            <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">Suas palavras</Text>
-            <Text className="mt-2 text-base leading-6 text-muted">Aqui aparecem apenas palavras que você já encontrou e começou a aprender.</Text>
+        <View className="mx-auto w-full max-w-5xl gap-6">
+          <AppHeader active="Biblioteca" user={user} onLogout={handleLogout} />
+          <SectionHeading eyebrow="BIBLIOTECA" title="Suas palavras" description="Consulte o que você encontrou e acompanhe seu estado pessoal." />
+          <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}><Text style={[styles.searchGlyph, { color: colors.primary }]}>⌕</Text><TextInput value={query} onChangeText={setQuery} placeholder="Buscar hanzi, pinyin ou significado" placeholderTextColor={colors.muted} autoCapitalize="none" autoCorrect={false} style={[styles.searchInput, { color: colors.foreground }]} accessibilityLabel="Buscar hanzi, pinyin ou significado" />{query ? <AppButton label="Limpar" variant="quiet" onPress={() => setQuery("")} /> : null}</View>
+          <View className="gap-2" accessibilityRole="tablist">
+            <View className="flex-row gap-2"><TabButton label="Minhas palavras" selected={scope === "mine"} onPress={() => { setScope("mine"); setFilter("all"); }} /><TabButton label="Dicionário" selected={scope === "dictionary"} onPress={() => setScope("dictionary")} /></View>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}><TabButton label="Todas" selected={filter === "all"} onPress={() => setFilter("all")} /><TabButton label="Aprendendo" selected={filter === "learning"} onPress={() => setFilter("learning")} /><TabButton label="Conhecidas" selected={filter === "known"} onPress={() => setFilter("known")} /><TabButton label="Novas" selected={filter === "new"} onPress={() => setFilter("new")} /></ScrollView>
           </View>
 
-          <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
-            <Text style={[styles.searchGlyph, { color: colors.primary }]}>⌕</Text>
-            <TextInput
-              value={query}
-              onChangeText={setQuery}
-              placeholder="Buscar hanzi, pinyin ou significado"
-              placeholderTextColor={colors.muted}
-              autoCapitalize="none"
-              autoCorrect={false}
-              style={[styles.searchInput, { color: colors.foreground }]}
-              accessibilityLabel="Buscar palavra"
-            />
-            {query ? <AppButton label="Limpar" variant="quiet" onPress={() => setQuery("")} /> : null}
-          </View>
-
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-            {([
-              ["all", "Todas"],
-              ["known", "Conhecidas"],
-              ["learning", "Em aprendizado"],
-            ] as const).map(([value, label]) => (
-              <AppButton
-                key={value}
-                label={label}
-                variant={filter === value ? "primary" : "secondary"}
-                onPress={() => setFilter(value)}
-              />
-            ))}
-          </ScrollView>
-
-          {selectedEntry ? (
-            <AppCard className="gap-4" tone="sand">
-              <View className="flex-row items-start justify-between gap-4">
-                <View className="flex-1">
-                  <Text className="text-5xl font-bold text-foreground">{selectedEntry.hanzi}</Text>
-                  <Text className="mt-2 text-lg text-primary">{selectedEntry.pinyin}</Text>
-                  <Text className="mt-1 text-base text-muted">{selectedEntry.meaningPtBr}</Text>
-                </View>
-                <AppButton label="Fechar" variant="quiet" onPress={() => setSelectedEntryId(null)} />
-              </View>
-              <View className="gap-2 border-t border-border pt-3">
-                <Text className="text-xs font-semibold uppercase tracking-widest text-primary">EM CONTEXTO</Text>
-                <Text className="text-xl font-bold text-foreground">{selectedEntry.exampleHanzi}</Text>
-                <Text className="text-sm leading-5 text-muted">{selectedEntry.examplePtBr}</Text>
-              </View>
-              <View className="gap-2">
-                <Text className="text-sm font-semibold text-foreground">Seu estado</Text>
-                <View className="gap-2">
-                  <AppButton label="Marcar como conhecida" variant={selectedEntry.status === "known" ? "primary" : "secondary"} loading={statusMutation.isPending && statusMutation.variables?.status === "known"} onPress={() => setStatus("known")} />
-                  <AppButton label="Estou aprendendo" variant={selectedEntry.status === "learning" ? "primary" : "secondary"} loading={statusMutation.isPending && statusMutation.variables?.status === "learning"} onPress={() => setStatus("learning")} />
-                  <AppButton label="Voltar para nova" variant={selectedEntry.status === "new" ? "primary" : "quiet"} loading={statusMutation.isPending && statusMutation.variables?.status === "new"} onPress={() => setStatus("new")} />
-                </View>
-              </View>
-            </AppCard>
-          ) : null}
-
-          <View className="gap-3">
-            <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-foreground">Meu vocabulário</Text>
-              <Text className="text-sm text-muted">{visibleEntries.length} palavras</Text>
-            </View>
-
-            {dictionaryQuery.isLoading ? (
-              <View className="items-center py-8">
-                <ActivityIndicator color={colors.primary} />
-              </View>
-            ) : dictionaryQuery.error ? (
-              <AppCard className="gap-3">
-                <Text className="font-semibold text-foreground">Dicionário indisponível</Text>
-                <Text className="text-sm leading-5 text-muted">{dictionaryQuery.error.message}</Text>
-                <AppButton label="Tentar novamente" onPress={() => void dictionaryQuery.refetch()} />
-              </AppCard>
-            ) : visibleEntries.length === 0 ? (
-              <AppCard className="gap-2" tone="sand">
-                <Text className="font-semibold text-foreground">Nenhuma palavra encontrada</Text>
-                <Text className="text-sm leading-5 text-muted">Conclua lições para novas palavras entrarem no seu vocabulário.</Text>
-              </AppCard>
-            ) : (
-              visibleEntries.map((entry) => (
-                <Pressable
-                  key={entry.id}
-                  onPress={() => setSelectedEntryId(entry.id)}
-                  style={({ pressed }) => [styles.entryPressable, { opacity: pressed ? 0.72 : 1 }]}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${entry.hanzi}, ${entry.meaningPtBr}, ${STATUS_LABELS[entry.status]}`}
-                >
-                  <AppCard className="flex-row items-center gap-4">
-                    <View className="h-14 w-14 items-center justify-center rounded-2xl bg-primary/10">
-                      <Text className="text-2xl font-bold text-primary">{entry.hanzi}</Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-base font-bold text-foreground">{entry.meaningPtBr}</Text>
-                      <Text className="mt-1 text-sm text-primary">{entry.pinyin}</Text>
-                      <Text className="mt-1 text-xs text-muted">{STATUS_LABELS[entry.status]}</Text>
-                    </View>
-                    <Text className="text-xl text-muted">›</Text>
-                  </AppCard>
-                </Pressable>
-              ))
-            )}
+          <View className="gap-3 md:flex-row">
+            <View className="flex-1 gap-3"><View className="flex-row items-center justify-between"><Text className="text-xl font-bold text-foreground">{scope === "mine" ? "Meu vocabulário" : "Dicionário global"}</Text><Text className="text-sm text-muted">{entries.length} palavras</Text></View>{dictionaryQuery.isLoading ? <LibraryLoading /> : dictionaryQuery.error ? <AppCard className="gap-3"><Text className="font-semibold text-foreground">Dicionário indisponível</Text><Text className="text-sm leading-5 text-muted">{dictionaryQuery.error.message}</Text><AppButton label="Tentar novamente" onPress={() => void dictionaryQuery.refetch()} /></AppCard> : entries.length === 0 ? <AppCard tone="sand" className="gap-2"><Text className="font-semibold text-foreground">Nenhuma palavra encontrada</Text><Text className="text-sm leading-5 text-muted">Tente outro filtro ou conclua uma etapa para novas palavras entrarem no seu vocabulário.</Text></AppCard> : entries.map((entry) => <Pressable key={entry.id} onPress={() => setSelectedEntryId(entry.id)} accessibilityRole="button" accessibilityLabel={`${entry.hanzi}, ${entry.meaningPtBr}, ${STATUS_LABELS[entry.status]}`} className="w-full"><AppCard className={`flex-row items-center gap-4 ${selectedEntryId === entry.id ? "border-primary bg-primary/5" : ""}`}><View className="h-14 w-14 items-center justify-center rounded-2xl bg-sand"><Text className="text-2xl font-bold text-primary">{entry.hanzi}</Text></View><View className="flex-1 gap-1"><Text className="text-base font-bold text-foreground">{entry.meaningPtBr}</Text><Text className="text-sm text-primary">{entry.pinyin}</Text><Text className="text-xs text-muted">{STATUS_LABELS[entry.status]}</Text></View><Text className="text-xl text-muted">›</Text></AppCard></Pressable>)}</View>
+            {selectedEntry ? <View className="md:w-[380px]"><WordDetailPanel entry={selectedEntry} onClose={() => setSelectedEntryId(null)} onStatus={setStatus} pending={statusMutation.isPending ? statusMutation.variables?.status : undefined} /></View> : null}
           </View>
         </View>
       </ScrollView>
@@ -165,31 +69,12 @@ export default function LibraryScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  searchBox: {
-    minHeight: 54,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderRadius: 16,
-    paddingLeft: 14,
-    paddingRight: 6,
-  },
-  searchGlyph: {
-    fontSize: 28,
-    lineHeight: 30,
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    minHeight: 52,
-    fontSize: 15,
-  },
-  filters: {
-    gap: 8,
-    paddingRight: 8,
-  },
-  entryPressable: {
-    width: "100%",
-  },
-});
+function TabButton({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  return <Pressable onPress={onPress} accessibilityRole="tab" accessibilityState={{ selected }} accessibilityLabel={`${label}${selected ? ", selecionado" : ""}`} className={`min-h-[44px] justify-center rounded-full border px-4 ${selected ? "border-foreground bg-foreground" : "border-border bg-surface"}`}><Text className={`font-bold ${selected ? "text-background" : "text-muted"}`}>{label}</Text></Pressable>;
+}
+
+function LibraryLoading() {
+  return <View className="items-center gap-3 py-8"><ActivityIndicator /><Text className="text-sm text-muted">Carregando palavras…</Text></View>;
+}
+
+const styles = StyleSheet.create({ searchBox: { minHeight: 56, flexDirection: "row", alignItems: "center", borderWidth: 1, borderRadius: 16, paddingLeft: 14, paddingRight: 6 }, searchGlyph: { fontSize: 26, lineHeight: 30, marginRight: 8 }, searchInput: { flex: 1, minHeight: 52, fontSize: 15 }, filters: { gap: 8, paddingRight: 8 } });

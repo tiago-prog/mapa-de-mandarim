@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { Stack, useFocusEffect, useLocalSearchParams, useNavigation, useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
+import { AppHeader } from "@/components/ui/app-header";
 import { AudioButton } from "@/components/ui/audio-button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { collectAudioUrls, preloadAudioFiles } from "@/lib/audio-cache";
 
 function createClientEventId() {
@@ -38,7 +40,9 @@ const KIND_LABELS = {
 
 export default function LessonScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const colors = useColors();
+  const { user, logout } = useAuth();
   const { id, stepId } = useLocalSearchParams<{ id: string; stepId?: string }>();
   const nodeId = Array.isArray(id) ? id[0] : id;
   const activeStepId = Array.isArray(stepId) ? stepId[0] : stepId;
@@ -62,6 +66,12 @@ export default function LessonScreen() {
       void utils.lesson.get.invalidate({ nodeId: submission.nodeId, stepId: activeStepId });
     },
   });
+
+  useFocusEffect(useCallback(() => {
+    const parent = navigation.getParent();
+    parent?.setOptions({ tabBarStyle: { display: "none" } });
+    return () => parent?.setOptions({ tabBarStyle: undefined });
+  }, [navigation]));
 
   useEffect(() => {
     const lessonPayload = lessonQuery.data;
@@ -97,6 +107,26 @@ export default function LessonScreen() {
   const content = lesson.step.content;
   const isResultVisible = Boolean(result);
   const isCorrect = result?.isCorrect ?? false;
+  const handleLogout = async () => { await logout(); router.replace("/login"); };
+
+  if (result?.isCorrect && !lesson.nextStepId) {
+    return (
+      <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right", "bottom"]}>
+        <Stack.Screen options={{ headerShown: false }} />
+        <View className="mx-auto w-full max-w-xl flex-1">
+          <AppHeader compact user={user} onLogout={handleLogout} />
+          <View className="flex-1 items-center justify-center gap-5">
+          <View className="h-20 w-20 items-center justify-center rounded-full bg-success"><Text className="text-4xl font-bold text-background">✓</Text></View>
+          <Text className="text-xs font-bold uppercase tracking-[1.5px] text-primary">ETAPA CONCLUÍDA</Text>
+          <Text className="text-center text-3xl font-bold text-foreground">Muito bem.</Text>
+          <Text className="text-center text-base leading-6 text-muted">Você reconheceu a estrutura e está pronto para aplicá-la.</Text>
+          <AppCard className="w-full gap-1 p-5"><Text className="mb-3 text-center text-4xl font-bold text-warning">+{result.xpAwarded} <Text className="text-base text-muted">XP</Text></Text><View className="flex-row justify-between border-t border-border py-3"><Text className="text-base text-muted">Prática concluída</Text><Text className="font-bold text-foreground">1 de 1</Text></View><View className="flex-row justify-between border-t border-border py-3"><Text className="text-base text-muted">Próximo destino</Text><Text className="font-bold text-foreground">Plano do nó</Text></View></AppCard>
+          <View className="w-full gap-3"><AppButton label="Voltar ao plano do nó" onPress={() => router.replace({ pathname: "/node/[id]", params: { id: lesson.node.id } })} /><AppButton label="Ir para Revisar" variant="quiet" onPress={() => router.replace("/(tabs)/review")} /></View>
+          </View>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   const resetAttempt = () => {
     setSelectedOptionId(null);
@@ -274,7 +304,8 @@ export default function LessonScreen() {
     <ScreenContainer className="px-5 pt-3" edges={["top", "left", "right", "bottom"]}>
       <Stack.Screen options={{ headerShown: false }} />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ flexGrow: 1, paddingBottom: 22 }}>
-        <View className="flex-1 gap-5">
+        <View className="mx-auto w-full max-w-3xl flex-1 gap-5">
+          <AppHeader compact user={user} onLogout={handleLogout} />
           <View className="flex-row items-center justify-between">
             <AppButton label="‹" variant="quiet" onPress={() => router.back()} accessibilityLabel="Voltar" />
             <Text className="text-xs font-semibold uppercase tracking-widest text-muted">{KIND_LABELS[lesson.step.kind]} · {lesson.step.orderIndex}/{lesson.stepCount}</Text>
@@ -438,7 +469,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   token: {
-    minHeight: 42,
+    minHeight: 44,
     alignItems: "center",
     justifyContent: "center",
     borderWidth: 1,

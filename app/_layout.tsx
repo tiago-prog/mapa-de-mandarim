@@ -89,6 +89,13 @@ export default function RootLayout() {
             <Stack.Screen name="(tabs)" />
             <Stack.Screen name="login" />
             <Stack.Screen name="oauth/callback" />
+            <Stack.Screen name="dev/remodel-preview" />
+            <Stack.Screen name="dev/preview-home" />
+            <Stack.Screen name="dev/preview-map" />
+            <Stack.Screen name="dev/preview-review" />
+            <Stack.Screen name="dev/preview-library" />
+            <Stack.Screen name="dev/preview-node" />
+            <Stack.Screen name="dev/preview-result" />
           </Stack>
           <StatusBar style="auto" />
         </QueryClientProvider>

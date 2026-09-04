@@ -78,7 +78,7 @@ export function AudioButton({ text, audioUrl, textHash, label = "Ouvir", rate = 
 }
 
 const styles = StyleSheet.create({
-  button: { minHeight: 40, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12 },
-  compact: { width: 42, minHeight: 42, paddingHorizontal: 0 },
+  button: { minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 7, borderWidth: 1, borderRadius: 999, paddingHorizontal: 12 },
+  compact: { width: 44, minHeight: 44, paddingHorizontal: 0 },
   label: { fontSize: 13, fontWeight: "700" },
 });
