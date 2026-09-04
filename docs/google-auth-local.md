@@ -2,6 +2,8 @@
 
 A branch `feature/lesson-vocabulary-exposure` suporta login direto com Google através do backend Express. O fluxo utiliza OAuth 2.0 Authorization Code, consulta o perfil OpenID do Google, cria ou atualiza o utilizador local e assina uma sessão JWT própria.
 
+O fluxo Google **não precisa de `VITE_APP_ID`, `EXPO_PUBLIC_APP_ID`, `OAUTH_SERVER_URL` ou `EXPO_PUBLIC_OAUTH_SERVER_URL`**. Esses valores pertenciam ao adaptador Manus antigo e não devem ser preenchidos para este login.
+
 ## Rotas
 
 ```text
@@ -48,7 +50,7 @@ Abrir `http://localhost:8081`. A função `getLoginUrl()` aponta diretamente par
 
 ## Identidade e sessão
 
-O utilizador Google é associado por `google:<sub>`, onde `sub` é o identificador estável OpenID do Google. O e-mail é armazenado como atributo, não como chave primária. A sessão usa o cookie `app_session_id` no web e continua compatível com o contexto tRPC e com as procedures protegidas.
+O utilizador Google é associado por `google:<sub>`, onde `sub` é o identificador estável OpenID do Google. O e-mail é armazenado como atributo, não como chave primária. A sessão usa o cookie `app_session_id` no web e continua compatível com o contexto tRPC e com as procedures protegidas. O JWT da sessão não contém nem valida um App ID legado; contém apenas a identidade Google local e o nome da sessão.
 
 ## Mobile
 
