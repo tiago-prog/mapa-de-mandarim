@@ -118,6 +118,10 @@ export default function LessonScreen() {
 
   const continueAfterResult = async () => {
     resetAttempt();
+    if (!lesson.nextStepId) {
+      router.replace("/(tabs)/map");
+      return;
+    }
     await lessonQuery.refetch();
   };
 
@@ -299,7 +303,7 @@ export default function LessonScreen() {
                   </View>
                 ) : null}
                 {activity.pinyin ? <Text className="text-center text-base text-warning">{activity.pinyin}</Text> : null}
-                {activity.meaning ? <Text className="text-center text-sm text-surface">{activity.meaning}</Text> : null}
+                {isResultVisible && activity.meaning ? <Text className="text-center text-sm text-warning">Significado: {activity.meaning}</Text> : null}
               </AppCard>
 
               {activity.type === "word_order" ? (

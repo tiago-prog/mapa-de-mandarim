@@ -63,17 +63,8 @@ describe("learning vertical slice", () => {
     expect(firstSubmission.xpAwarded).toBe(15);
     expect(firstSubmission.node.progressPercent).toBe(33);
 
-    const exposedWords = await caller.dictionary.myWords({});
-    expect(exposedWords.map((entry) => entry.id)).toEqual(expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]));
-    expect(exposedWords.find((entry) => entry.id === "wo-jiao")?.status).toBe("learning");
-
-    const dueAfterExposure = await caller.review.getDue({ limit: 50 });
-    expect(dueAfterExposure.some((card) => card.lexicalEntryId === "wo-jiao")).toBe(true);
-    const todayAfterExposure = await caller.today.get();
-    expect(todayAfterExposure.reviewDueCount).toBeGreaterThan(0);
-
-    const manuallyKnown = await caller.dictionary.setStatus({ entryId: "nihao", status: "known" });
-    expect(manuallyKnown.status).toBe("known");
+    expect(await caller.dictionary.myWords({})).toEqual([]);
+    expect(await caller.review.getDue({ limit: 50 })).toEqual([]);
 
     const secondSubmission = await caller.lesson.submitActivity({
       nodeId: "intro",
@@ -94,6 +85,16 @@ describe("learning vertical slice", () => {
     });
     expect(finalSubmission.isCorrect).toBe(true);
     expect(finalSubmission.node.progressPercent).toBe(100);
+
+    const exposedWords = await caller.dictionary.myWords({});
+    expect(exposedWords.map((entry) => entry.id)).toEqual(expect.arrayContaining(["nihao", "wo-jiao", "wo", "ni", "shenme", "jiao", "mingzi"]));
+    expect(exposedWords.find((entry) => entry.id === "wo-jiao")?.status).toBe("learning");
+    const dueAfterExposure = await caller.review.getDue({ limit: 50 });
+    expect(dueAfterExposure.some((card) => card.lexicalEntryId === "wo-jiao")).toBe(true);
+    expect((await caller.today.get()).reviewDueCount).toBeGreaterThan(0);
+
+    const manuallyKnown = await caller.dictionary.setStatus({ entryId: "nihao", status: "known" });
+    expect(manuallyKnown.status).toBe("known");
 
     const wordsAfterRepeatedExposure = await caller.dictionary.myWords({});
     expect(wordsAfterRepeatedExposure.find((entry) => entry.id === "nihao")?.status).toBe("known");

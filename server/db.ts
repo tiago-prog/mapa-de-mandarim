@@ -835,10 +835,12 @@ export async function submitActivityData(
           .onDuplicateKeyUpdate({
             set: { xp: result.userProgress.xp, streakDays: result.userProgress.streakDays, completedNodeCount: result.userProgress.completedNodeCount, updatedAt: completedAt },
           });
-        const relationRows = await tx
-          .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
-          .from(nodeLexicalEntries)
-          .where(eq(nodeLexicalEntries.nodeId, input.nodeId));
+        const relationRows = result.nodeProgress.status === "completed"
+          ? await tx
+            .select({ lexicalEntryId: nodeLexicalEntries.lexicalEntryId })
+            .from(nodeLexicalEntries)
+            .where(eq(nodeLexicalEntries.nodeId, input.nodeId))
+          : [];
         const entryIds = [...new Set(relationRows.map((row) => row.lexicalEntryId))];
         if (entryIds.length > 0) {
           const stateRows = await tx
@@ -924,7 +926,6 @@ export async function submitActivityData(
     }
   }
 
-  markMemoryVocabularyExposed(userId, input.nodeId, completedAt);
   const currentNodeProgress = getMemoryNodeProgress(userId).get(input.nodeId);
   const totalActivityCount = MVP_ACTIVITIES.filter((candidate) => candidate.nodeId === input.nodeId).length;
   const result = applyActivityCompletion(
@@ -942,6 +943,7 @@ export async function submitActivityData(
     totalActivityCount,
   );
   getMemoryNodeProgress(userId).set(input.nodeId, result.nodeProgress);
+  if (result.nodeProgress.status === "completed") markMemoryVocabularyExposed(userId, input.nodeId, completedAt);
   memoryUserProgress.set(userId, result.userProgress);
   const map = getMemoryMapData(userId);
   const node = map.nodes.find((candidate) => candidate.id === input.nodeId)!;
