@@ -139,6 +139,29 @@ export const appRouter = router({
         try { document = JSON.parse(saved.payloadJson); } catch { /* mantém payload indisponível */ }
         return { ...saved, document };
       }),
+    updateDraft: adminProcedure
+      .input(z.object({ id: z.string().min(1).max(64), document: z.unknown() }))
+      .mutation(async ({ input }) => {
+        const saved = await getContentImport(input.id);
+        if (!saved) throw new TRPCError({ code: "NOT_FOUND", message: "Importação não encontrada" });
+        if (saved.status === "published") throw new TRPCError({ code: "BAD_REQUEST", message: "Não é possível editar conteúdo publicado; crie uma nova versão" });
+        let document;
+        try {
+          document = validateContentImport(input.document);
+        } catch (error) {
+          if (error instanceof z.ZodError) throw new TRPCError({ code: "BAD_REQUEST", message: error.issues.map((issue) => issue.message).join("; ") });
+          throw error;
+        }
+        return saveContentImportDraft({
+          id: input.id,
+          pathId: document.path.id,
+          contentVersion: document.contentVersion,
+          status: "draft",
+          payloadJson: JSON.stringify(document),
+          validationErrorsJson: "[]",
+          createdBy: saved.createdBy,
+        });
+      }),
     setStatus: adminProcedure
       .input(z.object({ id: z.string().min(1).max(64), status: z.enum(["draft", "review", "published", "archived"]) }))
       .mutation(async ({ input }) => {
