@@ -83,6 +83,12 @@ export const getRedirectUri = () => {
 };
 
 export const getLoginUrl = () => {
+  if (process.env.EXPO_PUBLIC_AUTH_PROVIDER === "google") {
+    const returnTo = ReactNative.Platform.OS === "web" ? `${getApiBaseUrl().replace(/\/$/, "") || "http://localhost:8081"}` : getRedirectUri();
+    const url = new URL(`${getApiBaseUrl() || "http://localhost:3000"}/api/auth/google/start`);
+    url.searchParams.set("returnTo", returnTo);
+    return url.toString();
+  }
   const redirectUri = getRedirectUri();
   const state = encodeState(redirectUri);
 

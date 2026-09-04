@@ -11,4 +11,8 @@ export const ENV = {
   azureSpeechRegion: process.env.AZURE_SPEECH_REGION ?? "",
   audioStorageUploadUrlTemplate: process.env.AUDIO_STORAGE_UPLOAD_URL_TEMPLATE ?? "",
   audioStoragePublicUrlTemplate: process.env.AUDIO_STORAGE_PUBLIC_URL_TEMPLATE ?? "",
+  googleClientId: process.env.GOOGLE_CLIENT_ID ?? "",
+  googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
+  googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? "",
+  googleMobileRedirectUri: process.env.GOOGLE_MOBILE_REDIRECT_URI ?? "",
 };
