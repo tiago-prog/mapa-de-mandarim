@@ -1,4 +1,5 @@
-import { ActivityIndicator, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Text, View } from "react-native";
+import { useState } from "react";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
@@ -8,6 +9,7 @@ import { ProgressBar } from "@/components/ui/progress-bar";
 import { StatPill } from "@/components/ui/stat-pill";
 import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 
 function DataState({ message, action }: { message: string; action?: () => void }) {
   const colors = useColors();
@@ -26,7 +28,20 @@ function DataState({ message, action }: { message: string; action?: () => void }
 export default function HomeScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { user, logout } = useAuth();
+  const [profileOpen, setProfileOpen] = useState(false);
   const todayQuery = trpc.today.get.useQuery();
+
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+  const displayName = user?.name?.trim() || user?.email?.split("@")[0] || "vamos continuar";
+  const avatarLabel = displayName === "vamos continuar" ? "?" : displayName.slice(0, 1).toUpperCase();
+
+  const handleLogout = async () => {
+    setProfileOpen(false);
+    await logout();
+    router.replace("/login");
+  };
 
   if (todayQuery.isLoading) {
     return (
@@ -53,11 +68,27 @@ export default function HomeScreen() {
           <View className="flex-row items-start justify-between">
             <View className="flex-1 pr-4">
               <Text className="text-sm font-medium text-primary">MAPA DE MANDARIM</Text>
-              <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">Bom dia, estudante.</Text>
+              <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">{greeting}, {displayName}.</Text>
               <Text className="mt-2 text-base leading-6 text-muted">Seu próximo passo está pronto.</Text>
             </View>
-            <View className="h-12 w-12 items-center justify-center rounded-full bg-primary">
-              <Text className="text-xl font-bold text-background">生</Text>
+            <View className="items-end">
+              <Pressable
+                onPress={() => setProfileOpen((open) => !open)}
+                className="h-12 w-12 items-center justify-center rounded-full bg-primary"
+                accessibilityRole="button"
+                accessibilityLabel="Abrir menu da conta"
+              >
+                <Text className="text-xl font-bold text-background">{avatarLabel}</Text>
+              </Pressable>
+              {profileOpen ? (
+                <AppCard className="absolute right-0 top-14 z-10 w-56 gap-3 p-4">
+                  <View>
+                    <Text className="font-semibold text-foreground">{user?.name || "Sua conta"}</Text>
+                    {user?.email ? <Text className="mt-1 text-xs text-muted">{user.email}</Text> : null}
+                  </View>
+                  <AppButton label="Sair da conta" variant="secondary" onPress={handleLogout} accessibilityLabel="Sair da conta" />
+                </AppCard>
+              ) : null}
             </View>
           </View>
 
