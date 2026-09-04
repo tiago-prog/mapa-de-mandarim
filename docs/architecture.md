@@ -23,8 +23,8 @@ As regras de aprendizagem não devem depender da interface. O mapa, os flashcard
 | API | tRPC + Zod | Contratos tipados e validação |
 | Backend | Node.js + TypeScript | Serviço da aplicação |
 | Persistência | Drizzle ORM + MySQL/TiDB do scaffold | Dados sincronizados do usuário |
-| Sessão | Manus OAuth no desenvolvimento | Autenticação inicial do MVP |
-| Produção | Adaptador preparado para Google OAuth | Possível provedor principal futuro |
+| Sessão | Google OAuth 2.0 + JWT local | Autenticação do MVP |
+| Produção | Google OAuth com PKCE no mobile | Evolução do mesmo provedor |
 | Dados locais | AsyncStorage e fila pequena de eventos | Preferências, cache e respostas pendentes |
 | Áudio | expo-audio | Pronúncia e atividades de escuta |
 | Testes | TypeScript, lint, Vitest e testes de componentes | Proteção do domínio e dos fluxos críticos |
@@ -92,7 +92,7 @@ A marcação `known` reduz a introdução básica, mas não impede atividades de
 
 ## Autenticação
 
-O MVP utilizará Manus OAuth porque o scaffold já fornece o fluxo inicial e permite testar o produto rapidamente. A aplicação deve usar um identificador interno de usuário, nunca o e-mail como chave principal.
+O MVP utiliza Google OAuth 2.0 com Authorization Code no web. O servidor troca o código, consulta o perfil OpenID e cria uma sessão JWT própria. A aplicação usa um identificador estável baseado no `sub` do Google, nunca o e-mail como chave principal.
 
 ```text
 users

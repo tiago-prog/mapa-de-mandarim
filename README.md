@@ -34,7 +34,7 @@ Ao praticar uma atividade, as palavras vinculadas ao nó entram automaticamente 
 - tRPC e Zod
 - Drizzle ORM
 - MySQL/TiDB conforme o scaffold
-- Manus OAuth no desenvolvimento
+- Google OAuth com sessão JWT local
 - AsyncStorage para preferências, cache e fila inicial
 - Vitest, TypeScript e Expo Lint
 

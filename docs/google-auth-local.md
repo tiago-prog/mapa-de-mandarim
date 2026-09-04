@@ -23,7 +23,6 @@ GOOGLE_CLIENT_ID=...apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=...
 GOOGLE_REDIRECT_URI=http://localhost:3000/api/auth/google/callback
 EXPO_WEB_PREVIEW_URL=http://localhost:8081
-EXPO_PUBLIC_AUTH_PROVIDER=google
 EXPO_PUBLIC_API_BASE_URL=http://localhost:3000
 ```
 
@@ -45,7 +44,7 @@ pnpm db:migrate
 pnpm dev
 ```
 
-Abrir `http://localhost:8081`. Quando a interface chamar `getLoginUrl()` com `EXPO_PUBLIC_AUTH_PROVIDER=google`, o destino será `/api/auth/google/start`.
+Abrir `http://localhost:8081`. A função `getLoginUrl()` aponta diretamente para `/api/auth/google/start`.
 
 ## Identidade e sessão
 

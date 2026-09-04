@@ -83,20 +83,9 @@ export const getRedirectUri = () => {
 };
 
 export const getLoginUrl = () => {
-  if (process.env.EXPO_PUBLIC_AUTH_PROVIDER === "google") {
-    const returnTo = ReactNative.Platform.OS === "web" ? (typeof window !== "undefined" ? window.location.origin : "http://localhost:8081") : getRedirectUri();
-    const url = new URL(`${getApiBaseUrl() || "http://localhost:3000"}/api/auth/google/start`);
-    url.searchParams.set("returnTo", returnTo);
-    return url.toString();
-  }
-  const redirectUri = getRedirectUri();
-  const state = encodeState(redirectUri);
-
-  const url = new URL(`${OAUTH_PORTAL_URL}/app-auth`);
-  url.searchParams.set("appId", APP_ID);
-  url.searchParams.set("redirectUri", redirectUri);
-  url.searchParams.set("state", state);
-  url.searchParams.set("type", "signIn");
+  const returnTo = ReactNative.Platform.OS === "web" ? (typeof window !== "undefined" ? window.location.origin : "http://localhost:8081") : getRedirectUri();
+  const url = new URL(`${getApiBaseUrl() || "http://localhost:3000"}/api/auth/google/start`);
+  url.searchParams.set("returnTo", returnTo);
 
   return url.toString();
 };
