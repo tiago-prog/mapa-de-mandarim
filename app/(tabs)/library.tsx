@@ -21,7 +21,7 @@ export default function LibraryScreen() {
   const [filter, setFilter] = useState<WordFilter>("all");
   const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const utils = trpc.useUtils();
-  const dictionaryQuery = trpc.dictionary.search.useQuery({ query, limit: 50 });
+  const dictionaryQuery = trpc.dictionary.myWords.useQuery({});
   const statusMutation = trpc.dictionary.setStatus.useMutation({
     onSuccess: (entry) => {
       setSelectedEntryId(entry.id);
@@ -31,7 +31,12 @@ export default function LibraryScreen() {
     },
   });
 
-  const entries = useMemo(() => dictionaryQuery.data ?? [], [dictionaryQuery.data]);
+  const entries = useMemo(() => {
+    const normalizedQuery = query.trim().toLocaleLowerCase("pt-BR");
+    const personalEntries = dictionaryQuery.data ?? [];
+    if (!normalizedQuery) return personalEntries;
+    return personalEntries.filter((entry) => [entry.hanzi, entry.pinyin, entry.meaningPtBr].some((value) => value.toLocaleLowerCase("pt-BR").includes(normalizedQuery)));
+  }, [dictionaryQuery.data, query]);
   const visibleEntries = useMemo(
     () => (filter === "all" ? entries : entries.filter((entry) => entry.status === filter)),
     [entries, filter],
@@ -50,7 +55,7 @@ export default function LibraryScreen() {
           <View>
             <Text className="text-sm font-medium text-primary">BIBLIOTECA</Text>
             <Text className="mt-2 text-3xl font-bold leading-9 text-foreground">Suas palavras</Text>
-            <Text className="mt-2 text-base leading-6 text-muted">Consulte o vocabulário da trilha e registre o que já faz parte de você.</Text>
+            <Text className="mt-2 text-base leading-6 text-muted">Aqui aparecem apenas palavras que você já encontrou e começou a aprender.</Text>
           </View>
 
           <View style={[styles.searchBox, { borderColor: colors.border, backgroundColor: colors.surface }]}>
@@ -111,7 +116,7 @@ export default function LibraryScreen() {
 
           <View className="gap-3">
             <View className="flex-row items-center justify-between">
-              <Text className="text-xl font-bold text-foreground">Vocabulário da trilha</Text>
+              <Text className="text-xl font-bold text-foreground">Meu vocabulário</Text>
               <Text className="text-sm text-muted">{visibleEntries.length} palavras</Text>
             </View>
 
@@ -128,7 +133,7 @@ export default function LibraryScreen() {
             ) : visibleEntries.length === 0 ? (
               <AppCard className="gap-2" tone="sand">
                 <Text className="font-semibold text-foreground">Nenhuma palavra encontrada</Text>
-                <Text className="text-sm leading-5 text-muted">Tente buscar por outro hanzi, pinyin ou significado.</Text>
+                <Text className="text-sm leading-5 text-muted">Conclua lições para novas palavras entrarem no seu vocabulário.</Text>
               </AppCard>
             ) : (
               visibleEntries.map((entry) => (
