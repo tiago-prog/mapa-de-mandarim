@@ -1,18 +1,19 @@
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
-import { Platform } from "react-native";
+import { ActivityIndicator, Platform, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/hooks/use-auth";
 import { startOAuthLogin } from "@/constants/oauth";
-import { signInWithGoogle } from "@/lib/_core/google-signin";
+import { isGoogleSignInCancelled, signInWithGoogle } from "@/lib/_core/google-signin";
 
 export default function LoginScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { refresh } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -20,14 +21,19 @@ export default function LoginScreen() {
     setError(null);
     setLoading(true);
     try {
-      if (Platform.OS === "android") {
+      if (Platform.OS !== "web") {
         await signInWithGoogle();
+        await refresh();
         router.replace("/");
         return;
       }
       await startOAuthLogin();
       if (__DEV__) console.log("[Auth] Google login started");
     } catch (loginError) {
+      if (isGoogleSignInCancelled(loginError)) {
+        setLoading(false);
+        return;
+      }
       setError(loginError instanceof Error ? loginError.message : "Não foi possível iniciar o login com Google.");
       setLoading(false);
     }

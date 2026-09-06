@@ -4,7 +4,7 @@ Aplicativo mobile first de aprendizado de mandarim organizado como uma jornada v
 
 ## Estado atual
 
-A fundação do projeto e o primeiro vertical slice pedagógico já estão implementados. O app possui a tela Hoje personalizada, mapa de progressão, nós, lições, atividades, missões, dicionário, estados pessoais de palavras, identidade visual inicial, autenticação preparada pelo scaffold e configuração migrada para Expo SDK 57.0.9.
+A fundação do projeto e o primeiro vertical slice pedagógico já estão implementados. O app possui a tela Hoje personalizada, mapa de progressão, nós, lições, atividades, missões, dicionário, estados pessoais de palavras, identidade visual inicial e autenticação web/native baseada em development build.
 
 As abas atuais são:
 
@@ -23,7 +23,7 @@ Ao praticar uma atividade, as palavras vinculadas ao nó entram automaticamente 
 
 ## Stack
 
-- Expo SDK 57.0.9
+- Expo SDK 57.0.20
 - React Native 0.86.3
 - React 19.2.3
 - TypeScript 6.0.3
@@ -34,8 +34,8 @@ Ao praticar uma atividade, as palavras vinculadas ao nó entram automaticamente 
 - tRPC e Zod
 - Drizzle ORM
 - MySQL/TiDB conforme o scaffold
-- Google OAuth com sessão JWT local
-- AsyncStorage para preferências, cache e fila inicial
+- Google OAuth web e Google Sign-In nativo com sessão JWT revogável
+- SecureStore para token nativo e armazenamento local mínimo
 - Vitest, TypeScript e Expo Lint
 
 ## Desenvolvimento
@@ -44,6 +44,23 @@ Ao praticar uma atividade, as palavras vinculadas ao nó entram automaticamente 
 pnpm install
 pnpm dev
 ```
+
+`pnpm dev` inicia a API em `http://localhost:3000` e o Expo web. O app nativo não usa Expo Go: o Google Sign-In é um módulo nativo e exige um development build.
+
+### Desenvolvimento nativo
+
+1. Copie `.env.example` para `.env.local` e preencha `EXPO_PUBLIC_API_BASE_URL` com uma URL acessível pelo dispositivo. Em um aparelho físico, `localhost` aponta para o próprio aparelho; use o IP da máquina na mesma rede ou um túnel HTTPS.
+2. Preencha `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID` e, para iOS, `EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID`. O client ID iOS deve ser o valor completo terminado em `.apps.googleusercontent.com`; o reverse client ID é derivado automaticamente pelo `app.config.ts`.
+3. Gere o projeto nativo após qualquer mudança em dependências, plugins, permissões ou `app.config.ts`:
+
+```bash
+pnpm native:doctor
+pnpm native:prebuild
+pnpm android       # Android Studio/emulador ou aparelho configurado
+pnpm ios           # somente macOS com Xcode
+```
+
+Para iniciar o Metro conectado a um development build já instalado, use `pnpm dev:client`. Os perfis equivalentes no EAS estão em `eas.json`: `development` inclui o dev client, `preview` distribui um build interno e `production` incrementa a versão automaticamente. Variáveis públicas precisam ser fornecidas no ambiente do build; secrets do servidor nunca entram no bundle.
 
 Validações disponíveis:
 
@@ -55,7 +72,7 @@ pnpm db:generate   # gera SQL de schema para revisão
 pnpm db:migrate    # aplica migrações versionadas
 ```
 
-O comando `pnpm dev` inicia o servidor da API e o Metro/Expo web. Para testar em dispositivo, utilize o fluxo de QR Code do ambiente Expo.
+O comando `pnpm dev` inicia o servidor da API e o Metro/Expo web. Para testar o native, use um development build e `pnpm dev:client`; o QR do Expo Go não é um caminho suportado para esta aplicação.
 
 ### Banco local
 

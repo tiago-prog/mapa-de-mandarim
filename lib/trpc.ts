@@ -4,6 +4,7 @@ import superjson from "superjson";
 import type { AppRouter } from "@/server/routers";
 import { getApiBaseUrl } from "@/constants/oauth";
 import * as Auth from "@/lib/_core/auth";
+import { notifyUnauthorized } from "@/lib/_core/auth-events";
 
 /**
  * tRPC React client for type-safe API calls.
@@ -19,10 +20,11 @@ export const trpc = createTRPCReact<AppRouter>();
  * Call this once in your app's root layout.
  */
 export function createTRPCClient() {
+  const baseUrl = getApiBaseUrl();
   return trpc.createClient({
     links: [
       httpBatchLink({
-        url: `${getApiBaseUrl()}/api/trpc`,
+        url: `${baseUrl}/api/trpc`,
         // tRPC v11: transformer MUST be inside httpBatchLink, not at root
         transformer: superjson,
         async headers() {
@@ -30,11 +32,13 @@ export function createTRPCClient() {
           return token ? { Authorization: `Bearer ${token}` } : {};
         },
         // Custom fetch to include credentials for cookie-based auth
-        fetch(url, options) {
-          return fetch(url, {
+        async fetch(url, options) {
+          const response = await fetch(url, {
             ...options,
             credentials: "include",
           });
+          if (response.status === 401) notifyUnauthorized();
+          return response;
         },
       }),
     ],

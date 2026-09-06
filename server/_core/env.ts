@@ -15,5 +15,4 @@ export const ENV = {
   googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID ?? "",
   googleClientSecret: process.env.GOOGLE_CLIENT_SECRET ?? "",
   googleRedirectUri: process.env.GOOGLE_REDIRECT_URI ?? "",
-  googleMobileRedirectUri: process.env.GOOGLE_MOBILE_REDIRECT_URI ?? "",
 };

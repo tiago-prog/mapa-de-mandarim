@@ -1,11 +1,38 @@
 import { Platform } from "react-native";
+
 import { getApiBaseUrl } from "@/constants/oauth";
+
 import * as Auth from "./auth";
+import { notifyUnauthorized } from "./auth-events";
 
 type ApiResponse<T> = {
-  data?: T;
-  error?: string;
+  user?: T;
+  app_session_id?: string;
 };
+
+export class ApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = "ApiError";
+  }
+}
+
+function getRequestUrl(endpoint: string): string {
+  const baseUrl = getApiBaseUrl();
+  if (Platform.OS !== "web" && !baseUrl) {
+    throw new ApiError(
+      "Servidor da API não configurado. Defina EXPO_PUBLIC_API_BASE_URL no build nativo.",
+      0,
+    );
+  }
+
+  const cleanBaseUrl = baseUrl.replace(/\/$/, "");
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  return baseUrl ? `${cleanBaseUrl}${cleanEndpoint}` : cleanEndpoint;
+}
 
 export async function apiCall<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const headers: Record<string, string> = {
@@ -13,163 +40,67 @@ export async function apiCall<T>(endpoint: string, options: RequestInit = {}): P
     ...((options.headers as Record<string, string>) || {}),
   };
 
-  // Determine the auth method:
-  // - Native platform: use stored session token as Bearer auth
-  // - Web (including iframe): use cookie-based auth (browser handles automatically)
-  //   Cookie is set on backend domain via POST /api/auth/session after receiving token via postMessage
   if (Platform.OS !== "web") {
     const sessionToken = await Auth.getSessionToken();
-    if (__DEV__) console.log("[API] apiCall:", { endpoint, hasToken: !!sessionToken, method: options.method || "GET" });
-    if (sessionToken) {
-      headers["Authorization"] = `Bearer ${sessionToken}`;
-      if (__DEV__) console.log("[API] Authorization header added");
-    }
-  } else {
-    console.log("[API] apiCall:", { endpoint, platform: "web", method: options.method || "GET" });
+    if (sessionToken) headers.Authorization = `Bearer ${sessionToken}`;
   }
 
-  const baseUrl = getApiBaseUrl();
-  // Ensure no double slashes between baseUrl and endpoint
-  const cleanBaseUrl = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
-  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
-  const url = baseUrl ? `${cleanBaseUrl}${cleanEndpoint}` : endpoint;
-  if (__DEV__) console.log("[API] Full URL:", url);
-
-  try {
-    if (__DEV__) console.log("[API] Making request...");
-    const response = await fetch(url, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
-
-    if (__DEV__) console.log("[API] Response status:", response.status, response.statusText);
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      if (__DEV__) console.error("[API] Error response status:", response.status);
-      let errorMessage = errorText;
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorMessage = errorJson.error || errorJson.message || errorText;
-      } catch {
-        // Not JSON, use text as is
-      }
-      throw new Error(errorMessage || `API call failed: ${response.statusText}`);
-    }
-
-    const contentType = response.headers.get("content-type");
-    if (contentType && contentType.includes("application/json")) {
-      const data = await response.json();
-      if (__DEV__) console.log("[API] JSON response received");
-      return data as T;
-    }
-
-    const text = await response.text();
-    if (__DEV__) console.log("[API] Text response received");
-    return (text ? JSON.parse(text) : {}) as T;
-  } catch (error) {
-    if (__DEV__) console.error("[API] Request failed:", error instanceof Error ? error.message : "unknown error");
-    if (error instanceof Error) {
-      throw error;
-    }
-    throw new Error("Unknown error occurred");
-  }
-}
-
-// OAuth callback handler - exchange code for session token
-// Calls /api/oauth/mobile endpoint which returns JSON with app_session_id and user
-export async function exchangeOAuthCode(
-  code: string,
-  state: string,
-): Promise<{ sessionToken: string; user: any }> {
-  const result = await apiCall<{ app_session_id: string; user: any }>("/api/oauth/mobile", {
-    method: "POST",
-    body: JSON.stringify({ code, state }),
+  const response = await fetch(getRequestUrl(endpoint), {
+    ...options,
+    headers,
+    credentials: "include",
   });
 
-  // Convert app_session_id to sessionToken for compatibility
-  const sessionToken = result.app_session_id;
-  if (__DEV__) console.log("[API] OAuth exchange result:", { hasSessionToken: !!sessionToken, hasUser: !!result.user });
+  if (!response.ok) {
+    if (response.status === 401) notifyUnauthorized();
+    const errorText = await response.text();
+    let errorMessage = errorText;
+    try {
+      const errorJson = JSON.parse(errorText) as { error?: string; message?: string };
+      errorMessage = errorJson.error || errorJson.message || errorText;
+    } catch {
+      // Keep the response text when the server did not return JSON.
+    }
+    throw new ApiError(errorMessage || `API call failed with status ${response.status}`, response.status);
+  }
 
-  return {
-    sessionToken,
-    user: result.user,
-  };
+  const contentType = response.headers.get("content-type");
+  if (contentType?.includes("application/json")) {
+    return (await response.json()) as T;
+  }
+
+  const text = await response.text();
+  return (text ? JSON.parse(text) : {}) as T;
 }
 
 export async function exchangeGoogleIdToken(idToken: string): Promise<{
   sessionToken: string;
-  user: {
-    id: number;
-    openId: string;
-    name: string | null;
-    email: string | null;
-    loginMethod: string | null;
-    role: "user" | "admin";
-    lastSignedIn: string;
-  };
+  user: Auth.User;
 }> {
-  const result = await apiCall<{ app_session_id: string; user: any }>("/api/auth/google/native", {
+  if (!idToken.trim()) throw new Error("O Google não retornou um ID token válido.");
+  const result = await apiCall<ApiResponse<unknown>>("/api/auth/google/native", {
     method: "POST",
     body: JSON.stringify({ idToken }),
   });
-
-  return { sessionToken: result.app_session_id, user: result.user };
-}
-
-// Logout
-export async function logout(): Promise<void> {
-  await apiCall<void>("/api/auth/logout", {
-    method: "POST",
-  });
-}
-
-// Get current authenticated user (web uses cookie-based auth)
-export async function getMe(): Promise<{
-  id: number;
-  openId: string;
-  name: string | null;
-  email: string | null;
-  loginMethod: string | null;
-  role: "user" | "admin";
-  lastSignedIn: string;
-} | null> {
-  try {
-    const result = await apiCall<{ user: any }>("/api/auth/me");
-    return result.user || null;
-  } catch (error) {
-    console.error("[API] getMe failed:", error);
-    return null;
+  if (!result.app_session_id || !result.user) {
+    throw new Error("A API não retornou uma sessão válida.");
   }
+  return {
+    sessionToken: result.app_session_id,
+    user: Auth.normalizeUser(result.user),
+  };
 }
 
-// Establish session cookie on the backend (3000-xxx domain)
-// Called after receiving token via postMessage to get a proper Set-Cookie from the backend
-export async function establishSession(token: string): Promise<boolean> {
+export async function logout(): Promise<void> {
+  await apiCall<void>("/api/auth/logout", { method: "POST" });
+}
+
+export async function getMe(): Promise<Auth.User | null> {
   try {
-    console.log("[API] establishSession: setting cookie on backend...");
-    const baseUrl = getApiBaseUrl();
-    const url = `${baseUrl}/api/auth/session`;
-
-    const response = await fetch(url, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      credentials: "include", // Important: allows Set-Cookie to be stored
-    });
-
-    if (!response.ok) {
-      console.error("[API] establishSession failed:", response.status);
-      return false;
-    }
-
-    console.log("[API] establishSession: cookie set successfully");
-    return true;
+    const result = await apiCall<{ user: unknown }>("/api/auth/me");
+    return result.user ? Auth.normalizeUser(result.user) : null;
   } catch (error) {
-    console.error("[API] establishSession error:", error);
-    return false;
+    if (error instanceof ApiError && error.status === 401) return null;
+    throw error;
   }
 }

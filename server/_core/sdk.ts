@@ -21,6 +21,7 @@ const isNonEmptyString = (value: unknown): value is string =>
 export type SessionPayload = {
   openId: string;
   name: string;
+  sessionVersion: number;
 };
 
 const EXCHANGE_TOKEN_PATH = `/webdev.v1.WebDevAuthPublicService/ExchangeToken`;
@@ -28,14 +29,7 @@ const GET_USER_INFO_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfo`;
 const GET_USER_INFO_WITH_JWT_PATH = `/webdev.v1.WebDevAuthPublicService/GetUserInfoWithJwt`;
 
 class OAuthService {
-  constructor(private client: ReturnType<typeof axios.create>) {
-    console.log("[OAuth] Initialized with baseURL:", ENV.oAuthServerUrl);
-    if (!ENV.oAuthServerUrl) {
-      console.error(
-        "[OAuth] ERROR: OAUTH_SERVER_URL is not configured! Set OAUTH_SERVER_URL environment variable.",
-      );
-    }
-  }
+  constructor(private client: ReturnType<typeof axios.create>) {}
 
   private decodeState(state: string): string {
     const redirectUri = atob(state);
@@ -136,6 +130,7 @@ class SDKServer {
 
   private getSessionSecret() {
     const secret = ENV.cookieSecret;
+    if (!secret) throw new Error("JWT_SECRET is required to sign sessions");
     return new TextEncoder().encode(secret);
   }
 
@@ -146,12 +141,13 @@ class SDKServer {
    */
   async createSessionToken(
     openId: string,
-    options: { expiresInMs?: number; name?: string } = {},
+    options: { expiresInMs?: number; name?: string; sessionVersion?: number } = {},
   ): Promise<string> {
     return this.signSession(
       {
         openId,
         name: options.name || "",
+        sessionVersion: options.sessionVersion ?? 0,
       },
       options,
     );
@@ -169,6 +165,7 @@ class SDKServer {
     return new SignJWT({
       openId: payload.openId,
       name: payload.name,
+      sessionVersion: payload.sessionVersion,
     })
       .setProtectedHeader({ alg: "HS256", typ: "JWT" })
       .setExpirationTime(expirationSeconds)
@@ -177,11 +174,8 @@ class SDKServer {
 
   async verifySession(
     cookieValue: string | undefined | null,
-  ): Promise<{ openId: string; name: string } | null> {
-    if (!cookieValue) {
-      console.warn("[Auth] Missing session cookie");
-      return null;
-    }
+  ): Promise<{ openId: string; name: string; sessionVersion: number } | null> {
+    if (!cookieValue) return null;
 
     try {
       const secretKey = this.getSessionSecret();
@@ -189,18 +183,18 @@ class SDKServer {
         algorithms: ["HS256"],
       });
       const { openId, name } = payload as Record<string, unknown>;
+      const sessionVersion = Number((payload as Record<string, unknown>).sessionVersion ?? 0);
 
-      if (!isNonEmptyString(openId) || !isNonEmptyString(name)) {
-        console.warn("[Auth] Session payload missing required fields");
+      if (!isNonEmptyString(openId) || !isNonEmptyString(name) || !Number.isInteger(sessionVersion)) {
         return null;
       }
 
       return {
         openId,
         name,
+        sessionVersion,
       };
-    } catch (error) {
-      console.warn("[Auth] Session verification failed", String(error));
+    } catch {
       return null;
     }
   }
@@ -278,12 +272,27 @@ class SDKServer {
       throw ForbiddenError("User not found");
     }
 
+    if (session.sessionVersion !== user.sessionVersion) {
+      throw ForbiddenError("Session has been revoked");
+    }
+
     await db.upsertUser({
       openId: user.openId,
       lastSignedIn: signedInAt,
     });
 
     return user;
+  }
+
+  async revokeRequest(req: Request): Promise<void> {
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    const bearer = typeof authHeader === "string" && authHeader.startsWith("Bearer ")
+      ? authHeader.slice("Bearer ".length).trim()
+      : undefined;
+    const cookies = this.parseCookies(req.headers.cookie);
+    const token = bearer || cookies.get(COOKIE_NAME);
+    const session = await this.verifySession(token);
+    if (session) await db.revokeUserSessions(session.openId);
   }
 }
 
@@ -304,6 +313,7 @@ function buildCronUser(userInfo: GetUserInfoWithJwtResponse): AuthenticatedUser 
     email: null,
     loginMethod: null,
     role: "user",
+    sessionVersion: 0,
     createdAt: now,
     updatedAt: now,
     lastSignedIn: now,

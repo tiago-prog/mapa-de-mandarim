@@ -71,6 +71,13 @@
       "when": 1788528893841,
       "tag": "0009_batch_fixes",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1788715483624,
+      "tag": "0010_session_version",
+      "breakpoints": true
     }
   ]
 }

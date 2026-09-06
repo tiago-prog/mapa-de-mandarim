@@ -16,16 +16,16 @@ As regras de aprendizagem não devem depender da interface. O mapa, os flashcard
 
 | Camada | Tecnologia | Papel |
 |---|---|---|
-| Mobile | Expo SDK 57.0.9, React Native, TypeScript | Aplicativo iOS/Android e futura adaptação web |
+| Mobile | Expo SDK 57.0.20, React Native, TypeScript | Aplicativo iOS/Android e adaptação web via Expo Router |
 | Navegação | Expo Router 57 | Rotas e abas do aplicativo |
 | UI | NativeWind, React Native, Reanimated | Estilos, componentes e microinterações |
 | Dados remotos | TanStack Query | Cache, carregamento e invalidação |
 | API | tRPC + Zod | Contratos tipados e validação |
 | Backend | Node.js + TypeScript | Serviço da aplicação |
 | Persistência | Drizzle ORM + MySQL/TiDB do scaffold | Dados sincronizados do usuário |
-| Sessão | Google OAuth 2.0 + JWT local | Autenticação do MVP |
-| Produção | Google OAuth com Authorization Code e state assinado no mobile | PKCE permanece como evolução do mesmo provedor |
-| Dados locais | AsyncStorage e fila pequena de eventos | Preferências, cache e respostas pendentes |
+| Sessão | Google OAuth web + Google Sign-In nativo + JWT local | ID token Google validado no servidor e sessão revogável por `sessionVersion` |
+| Produção | OAuth Authorization Code/state somente na web; native usa development build e ID token | Não transportar code, state ou token em deep link |
+| Dados locais | SecureStore para sessão nativa; armazenamento local somente para cache/preferências | Token nunca é escrito em logs ou AsyncStorage |
 | Áudio | expo-audio | Pronúncia e atividades de escuta |
 | Testes | TypeScript, lint, Vitest e testes de componentes | Proteção do domínio e dos fluxos críticos |
 

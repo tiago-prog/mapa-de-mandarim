@@ -38,6 +38,25 @@ jobs:
           node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Expo doctor
+        run: pnpm native:doctor
+      - name: Validate Expo public config
+        run: pnpm native:config >/tmp/expo-config.json
+      - name: Validate Android prebuild
+        env:
+          EAS_BUILD_PLATFORM: android
+          EXPO_PUBLIC_API_BASE_URL: https://api.example.com
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 0000000000-web.apps.googleusercontent.com
+        run: pnpm exec expo prebuild --no-install --platform android
+      - name: Validate iOS prebuild
+        env:
+          EAS_BUILD_PLATFORM: ios
+          EXPO_PUBLIC_API_BASE_URL: https://api.example.com
+          EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID: 0000000000-web.apps.googleusercontent.com
+          EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID: 0000000000-ios.apps.googleusercontent.com
+        run: pnpm exec expo prebuild --no-install --platform ios
+      - name: Remove generated native directories
+        run: rm -rf android ios
       - run: pnpm db:migrate
       - run: pnpm check
       - run: pnpm test

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 
 import {
@@ -756,6 +756,15 @@ export async function getUserByOpenId(openId: string) {
   if (!db) return undefined;
   const result = await db.select().from(users).where(eq(users.openId, openId)).limit(1);
   return result.length > 0 ? result[0] : undefined;
+}
+
+export async function revokeUserSessions(openId: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw databaseRequiredError();
+  await db
+    .update(users)
+    .set({ sessionVersion: sql`${users.sessionVersion} + 1`, updatedAt: new Date() })
+    .where(eq(users.openId, openId));
 }
 
 export async function getLearningMapData(userId = DEMO_USER_ID): Promise<LearningMapData> {

@@ -11,7 +11,7 @@
 - [x] Definir nome final e identidade definitiva do aplicativo
 - [x] Definir primeira trilha pedagógica do MVP
 - [x] Registrar decisões de arquitetura e modelo de domínio
-- [x] Definir estratégia de autenticação: Manus OAuth no desenvolvimento e Google OAuth para produção
+- [x] Definir estratégia de autenticação: Google OAuth web e Google Sign-In nativo em development build
 - [x] Definir política de dados locais e sincronização
 
 ## Etapa 2 — Identidade visual e design system
@@ -30,7 +30,7 @@
 - [x] Configurar navegação inferior mobile first
 - [ ] Implementar tema claro e escuro
 - [x] Implementar estados de carregamento e erro
-- [ ] Integrar fluxo de autenticação inicial
+- [x] Integrar fluxo de autenticação inicial
 - [ ] Criar tela de boas-vindas
 - [ ] Criar tela de diagnóstico inicial
 
@@ -120,7 +120,7 @@
 
 ## Migração para Expo SDK 57
 
-- [x] Auditar compatibilidade do Expo SDK 57.0.9 com o scaffold atual
+- [x] Auditar compatibilidade do Expo SDK 57.0.20 com o scaffold atual
 - [x] Atualizar Expo SDK e módulos Expo para versões compatíveis
 - [x] Atualizar React Native, Expo Router e dependências relacionadas conforme compatibilidade
 - [x] Regenerar lockfile e validar instalação
@@ -133,7 +133,7 @@
 - [x] Definir nome e identidade de trabalho do produto para esta fase
 - [x] Documentar a primeira trilha pedagógica e seus limites de MVP
 - [x] Documentar arquitetura e modelo de domínio inicial
-- [x] Documentar estratégia de autenticação Manus OAuth e futura transição para Google OAuth
+- [x] Documentar estratégia de autenticação Google web/native e revogação de sessão
 - [x] Documentar política de dados locais, sincronização e escopo offline
 - [x] Atualizar README com a visão e o estado atual do projeto
 - [x] Validar TypeScript, lint, testes e preview

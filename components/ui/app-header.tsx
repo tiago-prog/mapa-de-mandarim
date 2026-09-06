@@ -1,4 +1,4 @@
-import { Pressable, Text, View } from "react-native";
+import { Platform, Pressable, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
 import type { User } from "@/lib/_core/auth";
@@ -18,8 +18,8 @@ export function AppHeader({ active, user, onLogout, compact = false }: { active?
       <Pressable onPress={() => router.push("/(tabs)" as never)} accessibilityRole="link" accessibilityLabel="Mapa de Mandarim, ir para Hoje">
         <Text className="text-xs font-bold uppercase tracking-[1.5px] text-primary">Mapa <Text className="text-foreground">de Mandarim</Text></Text>
       </Pressable>
-      {!compact ? (
-        <View className="hidden flex-row items-center gap-1 md:flex" accessibilityRole="tablist">
+      {!compact && Platform.OS === "web" ? (
+        <View className="flex-row flex-wrap items-center justify-end gap-1" accessibilityRole="tablist">
           {NAV_ITEMS.map((item) => {
             const selected = item.label === active;
             return (

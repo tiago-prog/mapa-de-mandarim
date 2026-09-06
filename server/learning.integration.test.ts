@@ -13,6 +13,7 @@ function createContext(): TrpcContext {
       email: null,
       loginMethod: "test",
       role: "user",
+      sessionVersion: 0,
       createdAt: now,
       updatedAt: now,
       lastSignedIn: now,

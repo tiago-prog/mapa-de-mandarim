@@ -1,6 +1,10 @@
 // Load environment variables with proper priority (system > .env)
 import "./scripts/load-env.js";
 import type { ExpoConfig } from "expo/config";
+// app.config.ts is executed by Node after transpilation; keep this helper CommonJS-loadable.
+const { googleIosUrlScheme } = require("./scripts/google-config.js") as {
+  googleIosUrlScheme: (clientId: string) => string;
+};
 
 // Bundle ID format: space.manus.<project_name_dots>.<timestamp>
 // e.g., "my-app" created at 2024-01-15 10:30:45 -> "space.manus.my.app.t20240115103045"
@@ -21,8 +25,21 @@ const bundleId =
       return /^[a-zA-Z]/.test(segment) ? segment : "x" + segment;
     })
     .join(".") || "space.manus.app";
-// Keep the native scheme stable so the server can validate signed OAuth state.
+// Keep the app scheme stable for platform integrations and future deep-link work.
 const schemeFromBundleId = process.env.EXPO_PUBLIC_OAUTH_SCHEME ?? "manusmapamandarim";
+const googleWebClientId =
+  process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_WEB_CLIENT_ID ?? "";
+const googleIosClientId =
+  process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID ?? process.env.GOOGLE_IOS_CLIENT_ID ?? "";
+const nativeTarget = process.env.EAS_BUILD_PLATFORM ?? process.env.EXPO_TARGET_PLATFORM;
+
+if (nativeTarget && ["android", "ios"].includes(nativeTarget) && !googleWebClientId) {
+  throw new Error("EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID is required for native builds");
+}
+
+if (nativeTarget === "ios" && !googleIosClientId) {
+  throw new Error("EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID is required for iOS builds");
+}
 
 const env = {
   // App branding - update these values directly (do not use env vars)
@@ -35,13 +52,12 @@ const env = {
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
-const googleIosClientId = process.env.GOOGLE_IOS_CLIENT_ID;
-const googleSignInPlugins: [string, { iosUrlScheme: string }][] = googleIosClientId
+const googleSignInPlugins: NonNullable<ExpoConfig["plugins"]> = googleIosClientId
   ? [
       [
         "@react-native-google-signin/google-signin",
         {
-          iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.replace(/\\.apps\\.googleusercontent\\.com$/, "")}`,
+          iosUrlScheme: googleIosUrlScheme(googleIosClientId),
         },
       ],
     ]
@@ -71,20 +87,6 @@ const config: ExpoConfig = {
     },
     predictiveBackGestureEnabled: false,
     package: env.androidPackage,
-    permissions: ["POST_NOTIFICATIONS"],
-    intentFilters: [
-      {
-        action: "VIEW",
-        autoVerify: true,
-        data: [
-          {
-            scheme: env.scheme,
-            host: "*",
-          },
-        ],
-        category: ["BROWSABLE", "DEFAULT"],
-      },
-    ],
   },
   web: {
     bundler: "metro",
@@ -93,6 +95,8 @@ const config: ExpoConfig = {
   },
   plugins: [
     ...googleSignInPlugins,
+    "expo-asset",
+    "expo-dev-client",
     "expo-router",
     "expo-font",
     "expo-image",
@@ -102,14 +106,10 @@ const config: ExpoConfig = {
     [
       "expo-audio",
       {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
-      },
-    ],
-    [
-      "expo-video",
-      {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
+        microphonePermission: false,
+        recordAudioAndroid: false,
+        enableBackgroundRecording: false,
+        enableBackgroundPlayback: false,
       },
     ],
     [
@@ -139,7 +139,10 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
-    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID,
+    apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? "",
+    googleWebClientId,
+    googleIosClientId,
+    oauthScheme: env.scheme,
   },
 };
 
