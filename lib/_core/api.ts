@@ -98,6 +98,26 @@ export async function exchangeOAuthCode(
   };
 }
 
+export async function exchangeGoogleIdToken(idToken: string): Promise<{
+  sessionToken: string;
+  user: {
+    id: number;
+    openId: string;
+    name: string | null;
+    email: string | null;
+    loginMethod: string | null;
+    role: "user" | "admin";
+    lastSignedIn: string;
+  };
+}> {
+  const result = await apiCall<{ app_session_id: string; user: any }>("/api/auth/google/native", {
+    method: "POST",
+    body: JSON.stringify({ idToken }),
+  });
+
+  return { sessionToken: result.app_session_id, user: result.user };
+}
+
 // Logout
 export async function logout(): Promise<void> {
   await apiCall<void>("/api/auth/logout", {

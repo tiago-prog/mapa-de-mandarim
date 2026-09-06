@@ -1,13 +1,17 @@
 import { useState } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
+import { Platform } from "react-native";
+import { useRouter } from "expo-router";
 
 import { ScreenContainer } from "@/components/screen-container";
 import { AppButton } from "@/components/ui/app-button";
 import { AppCard } from "@/components/ui/app-card";
 import { useColors } from "@/hooks/use-colors";
 import { startOAuthLogin } from "@/constants/oauth";
+import { signInWithGoogle } from "@/lib/_core/google-signin";
 
 export default function LoginScreen() {
+  const router = useRouter();
   const colors = useColors();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -16,8 +20,12 @@ export default function LoginScreen() {
     setError(null);
     setLoading(true);
     try {
+      if (Platform.OS === "android") {
+        await signInWithGoogle();
+        router.replace("/");
+        return;
+      }
       await startOAuthLogin();
-      // On web, the browser navigates to Google. On native, OAuth returns through the deep link callback.
       if (__DEV__) console.log("[Auth] Google login started");
     } catch (loginError) {
       setError(loginError instanceof Error ? loginError.message : "Não foi possível iniciar o login com Google.");

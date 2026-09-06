@@ -35,6 +35,17 @@ const env = {
   iosBundleId: bundleId,
   androidPackage: bundleId,
 };
+const googleIosClientId = process.env.GOOGLE_IOS_CLIENT_ID;
+const googleSignInPlugins: [string, { iosUrlScheme: string }][] = googleIosClientId
+  ? [
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          iosUrlScheme: `com.googleusercontent.apps.${googleIosClientId.replace(/\\.apps\\.googleusercontent\\.com$/, "")}`,
+        },
+      ],
+    ]
+  : [];
 
 const config: ExpoConfig = {
   name: env.appName,
@@ -81,6 +92,7 @@ const config: ExpoConfig = {
     favicon: "./assets/images/favicon.png",
   },
   plugins: [
+    ...googleSignInPlugins,
     "expo-router",
     "expo-font",
     "expo-image",
@@ -125,6 +137,9 @@ const config: ExpoConfig = {
   experiments: {
     typedRoutes: true,
     reactCompiler: true,
+  },
+  extra: {
+    googleWebClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_WEB_CLIENT_ID ?? process.env.GOOGLE_CLIENT_ID,
   },
 };
 

@@ -5,12 +5,15 @@ import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 import { ENV } from "./env";
 import { SignJWT, jwtVerify } from "jose";
+import { OAuth2Client } from "google-auth-library";
 
 const GOOGLE_AUTHORIZE_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://openidconnect.googleapis.com/v1/userinfo";
 
 type GoogleUser = { sub?: string; name?: string; email?: string };
+
+const googleTokenClient = new OAuth2Client();
 
 function query(req: Request, key: string) {
   const value = req.query[key];
@@ -90,6 +93,21 @@ async function syncGoogleUser(googleUser: GoogleUser) {
   return user;
 }
 
+async function verifyNativeGoogleIdToken(idToken: string) {
+  if (!ENV.googleWebClientId) throw new Error("GOOGLE_WEB_CLIENT_ID is not configured");
+
+  const ticket = await googleTokenClient.verifyIdToken({
+    idToken,
+    audience: ENV.googleWebClientId,
+  });
+  const payload = ticket.getPayload();
+  if (!payload?.sub || !payload.email || payload.email_verified !== true) {
+    throw new Error("Google ID token has no verified identity");
+  }
+
+  return syncGoogleUser({ sub: payload.sub, email: payload.email, name: payload.name });
+}
+
 function userResponse(user: Awaited<ReturnType<typeof getUserByOpenId>>) {
   return { id: user?.id ?? null, openId: user?.openId ?? null, name: user?.name ?? null, email: user?.email ?? null, loginMethod: user?.loginMethod ?? null, role: user?.role ?? "user", lastSignedIn: (user?.lastSignedIn ?? new Date()).toISOString() };
 }
@@ -145,6 +163,30 @@ export function registerOAuthRoutes(app: Express) {
     } catch (error) {
       console.error("[Google OAuth] Native exchange failed", error instanceof Error ? error.message : "unknown error");
       res.status(401).json({ error: "Não foi possível concluir o login Google no aplicativo." });
+    }
+  });
+
+  app.post("/api/auth/google/native", async (req: Request, res: Response) => {
+    const idToken = typeof req.body?.idToken === "string" ? req.body.idToken : undefined;
+    if (!idToken) {
+      res.status(400).json({ error: "idToken is required" });
+      return;
+    }
+    if (!ENV.googleWebClientId) {
+      res.status(503).json({ error: "Google native authentication is not configured" });
+      return;
+    }
+
+    try {
+      const user = await verifyNativeGoogleIdToken(idToken);
+      const sessionToken = await sdk.createSessionToken(user.openId, {
+        name: user.name || user.email || "Google user",
+        expiresInMs: ONE_YEAR_MS,
+      });
+      res.json({ app_session_id: sessionToken, user: userResponse(user) });
+    } catch (error) {
+      console.error("[Google OAuth] Native token verification failed", error instanceof Error ? error.message : "unknown error");
+      res.status(401).json({ error: "Não foi possível validar a conta Google." });
     }
   });
 
