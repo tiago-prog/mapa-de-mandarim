@@ -35,6 +35,14 @@ Para as restantes operações:
 
 O PowerShell chama `docker compose` diretamente. O Docker Desktop fornece o motor Linux e o volume persistente, enquanto o código continua no filesystem do Windows.
 
+Se existir `.env.docker` na raiz, o script PowerShell o carrega automaticamente em todas as operações. Para usar outro arquivo, informe o caminho explicitamente:
+
+```powershell
+.\scripts\docker-db.ps1 -EnvFile .env.docker.local -Action up
+```
+
+Um arquivo alternativo inexistente interrompe o comando de propósito; sem `.env.docker`, o script usa os defaults declarados no `docker-compose.yml`.
+
 Se preferires executar pelo WSL, ativa a integração da distribuição no Docker Desktop e usa o script Bash. Não executes os dois fluxos ao mesmo tempo:
 
 ```bash
